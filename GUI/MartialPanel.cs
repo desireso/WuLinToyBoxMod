@@ -51,6 +51,10 @@ internal class MartialPanel : MonoBehaviour
                 }
             });
         }
+        KoreanLocalizer.SetToggleLabels(
+            _typeGroup.transform,
+            "내공", "권장", "검", "도", "장병", "단병", "악기", "기타"
+        );
 
         var scrollView = transform.Find("MartialList/ScrollView").gameObject;
         var entryPrefab = transform.Find("MartialList/ScrollView/Viewport/EntryPrefab").gameObject;
@@ -100,6 +104,7 @@ internal class MartialPanel : MonoBehaviour
             entry.Find("Content/NameText").GetComponent<TextMeshProUGUI>().text = role.FullName;
 
             var toggle = entry.GetComponent<Toggle>();
+            toggle.onValueChanged.RemoveAllListeners();
             toggle.onValueChanged.AddListener(delegate (bool isOn) {
                 if (isOn) {
                     Character = role;
@@ -111,8 +116,13 @@ internal class MartialPanel : MonoBehaviour
     private void UpdateMartialList(MartialType type)
     {
         _type = type;
-        
-        _infinityScroll.Data = _classifiedKungfus[type];
+
+        if (_classifiedKungfus.TryGetValue(type, out var kungfus)) {
+            _infinityScroll.Data = kungfus;
+        }
+        else {
+            _infinityScroll.Data = new List<KungfuData>();
+        }
     }
 
     public static MartialType GetMartialType(KungfuData kungfu)

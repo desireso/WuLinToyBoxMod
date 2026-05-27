@@ -7,7 +7,7 @@ using WuLin.GameFrameworks;
 
 namespace HaxxToyBox.Patches;
 
-public class MiscPatch
+public class TimeFreezePatch
 {
     [HarmonyPrefix]
     [HarmonyPatch(typeof(SaveObjectGameTime), "AddDeltaTime")]
@@ -17,7 +17,10 @@ public class MiscPatch
 
         return !MiscPanel.Instance.TimeFreezed;
     }
+}
 
+public class RecoverAfterBattlePatch
+{
     [HarmonyPostfix]
     [HarmonyPatch(typeof(BattleManager), "LeaveBattle")]
     public static void LeaveBattle_PrePatch()
@@ -26,7 +29,10 @@ public class MiscPatch
             PlayerTeamManager.Instance.PlayerDataInstance.FullyRecover();
         }
     }
+}
 
+public class NoCombatSightPatch
+{
     [HarmonyPostfix]
     [HarmonyPatch(typeof(RoamingManager), "GetNpcBySightPoint")]
     public static void GetNpcBySightPoint_PostPatch(ref Il2CppSystem.Collections.Generic.List<Npc> __result)
@@ -35,6 +41,10 @@ public class MiscPatch
             __result.Clear();
         }
     }
+}
+
+public class NoCombatPerceptionPatch
+{
     [HarmonyPostfix]
     [HarmonyPatch(typeof(StealthManager), "GetPerceptionSpeed")]
     public static void GetPerceptionSpeed_PostPatch(ref float __result)
@@ -43,6 +53,10 @@ public class MiscPatch
             __result = 0;
         }
     }
+}
+
+public class NoCombatFoundPatch
+{
     [HarmonyPrefix]
     [HarmonyPatch(typeof(StealthPerceptComponent), "OnFound")]
     public static bool OnFound_PrePatch()
@@ -51,7 +65,10 @@ public class MiscPatch
 
         return !MiscPanel.Instance.NoCombat;
     }
+}
 
+public class SkillExpPatch
+{
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(GameCharacterInstance), "ChangeAdditionProp")]
@@ -62,7 +79,10 @@ public class MiscPatch
         }
         return true;
     }
+}
 
+public class GiftingRelationPatch
+{
     [HarmonyPostfix]
     [HarmonyPatch(typeof(GiftingWithNpcUI), "Awake")]
     public static void GiftingWithNpcUIAwake_PostPatch(GiftingWithNpcUI __instance)
@@ -73,7 +93,7 @@ public class MiscPatch
         button.name = "IncRelation";
         button.GetComponent<RectTransform>().sizeDelta = new Vector2(100, 40);
         button.GetComponent<RectTransform>().localPosition = new Vector3(-10, 120, 0);
-        button.GetComponentInChildren<TextMeshProUGUI>().text = "满好感";
+        button.GetComponentInChildren<TextMeshProUGUI>().text = "호감도 최대";
         button.GetComponentInChildren<TextMeshProUGUI>().fontSize = 20;
         button.GetComponent<Button>().onClick.RemoveAllListeners();
         button.GetComponent<Button>().onClick.AddListener(delegate {
@@ -91,7 +111,10 @@ public class MiscPatch
         button?.gameObject.SetActive(MiscPanel.Instance.RelationEnabled);
         return true;
     }
+}
 
+public class WalkSpeedPatch
+{
 
     [HarmonyPostfix]
     [HarmonyPatch(typeof(Role), "UpdateSpeed")]
@@ -101,8 +124,11 @@ public class MiscPatch
             __instance.speed *= MiscPanel.Instance.WalkSpeed;
         }
     }
+}
 
 
+public class AchievementHistoryPatch
+{
     [HarmonyPostfix]
     [HarmonyPatch(typeof(GameManager), "IsAnyModActivedInHistroy", MethodType.Getter)]
     public static void IsAnyModActivedInHistroy_PostPatch(ref bool __result)
@@ -111,6 +137,10 @@ public class MiscPatch
             __result = false;
         }
     }
+}
+
+public class MiscPatch
+{
 
     //[HarmonyPrefix]
     //[HarmonyPatch(typeof(BattleUI), "OnSpeedButtonClickHandler")]

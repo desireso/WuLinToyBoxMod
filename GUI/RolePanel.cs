@@ -85,6 +85,7 @@ internal class RolePanel : MonoBehaviour
             entry.Find("Content/NameText").GetComponent<TextMeshProUGUI>().text = role.FullName;
 
             var toggle = entry.GetComponent<Toggle>();
+            toggle.onValueChanged.RemoveAllListeners();
             toggle.onValueChanged.AddListener(delegate (bool isOn){
                 if (isOn) {
                     UpdateRoleInfo(role);

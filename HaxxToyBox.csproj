@@ -15,6 +15,7 @@
     <Nullable>disable</Nullable>
     <RootNamespace>HaxxToyBox</RootNamespace>
     <AnalysisLevel>latest</AnalysisLevel>
+    <GameDir Condition="'$(GameDir)' == ''"></GameDir>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -76,12 +77,13 @@
     </Reference>
   </ItemGroup>
 
-  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="xcopy &quot;E:\Programs\Steam\steamapps\common\WulinSH\BepInEx\interop\*.dll&quot; &quot;$(ProjectDir)lib\&quot; /Y" />
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent" Condition="'$(GameDir)' != '' And Exists('$(GameDir)\BepInEx\interop')">
+    <Exec Command="xcopy &quot;$(GameDir)\BepInEx\interop\*.dll&quot; &quot;$(ProjectDir)lib\&quot; /Y" />
   </Target>
   
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy &quot;$(TargetDir)*.dll&quot; &quot;E:\Programs\Steam\steamapps\common\WulinSH\BepInEx\plugins\HaxxToyBox\&quot; /Y" />
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(GameDir)' != '' And Exists('$(GameDir)\BepInEx\plugins')">
+    <MakeDir Directories="$(GameDir)\BepInEx\plugins\HaxxToyBox" />
+    <Exec Command="xcopy &quot;$(TargetDir)*.dll&quot; &quot;$(GameDir)\BepInEx\plugins\HaxxToyBox\&quot; /Y" />
   </Target>
 
   <ItemGroup>

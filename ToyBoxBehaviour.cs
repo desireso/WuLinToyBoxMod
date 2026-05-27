@@ -155,7 +155,17 @@ internal class ToyBoxBehaviour : MonoBehaviour
 
     private void SetupUI()
     {
+        if (GUICanvas == null) {
+            ToyBox.LogError("ToyBox UI was not created because the AssetBundle could not be loaded.");
+            return;
+        }
+
         var buttonBot = GUICanvas.transform.Find("Buttons Bottom");
+        if (buttonBot == null) {
+            ToyBox.LogError("ToyBox UI is missing 'Buttons Bottom'. The AssetBundle may be incompatible with this mod version.");
+            return;
+        }
+
         foreach (var child in buttonBot) {
             var button = child.Cast<Transform>().Find("Button").GetComponent<Button>();
             button.gameObject.AddComponent<FadeButtonWrapper>();
@@ -193,6 +203,8 @@ internal class ToyBoxBehaviour : MonoBehaviour
 
         var martialPanel = GUICanvas.transform.Find("MartialPanel").gameObject;
         martialPanel.AddComponent<MartialPanel>();
+
+        KoreanLocalizer.Localize(GUICanvas);
     }
 
 

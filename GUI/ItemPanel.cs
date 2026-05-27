@@ -30,6 +30,7 @@ public class ItemPanel : MonoBehaviour
     private Dictionary<ItemType, List<ItemData>> _classifiedItems = new ();
 
     private int _selectedType = 0;
+    private int _selectedSubtype = 0;
 
     public List<ItemData> ItemList = new ();
     public int Number = 1;
@@ -55,6 +56,10 @@ public class ItemPanel : MonoBehaviour
                 }
             });
         }
+        KoreanLocalizer.SetToggleLabels(
+            _typeGroup.transform,
+            "장비", "무공서", "소비품", "재료", "지도", "기타"
+        );
 
         for (int i = 0; i < _subtypeGroup.transform.childCount; i++) {
             var toggle = _subtypeGroup.transform.GetChild(i).GetComponent<Toggle>();
@@ -77,7 +82,7 @@ public class ItemPanel : MonoBehaviour
         _searchInput = transform.Find("SearchInput").GetComponent<TMP_InputField>();
         _searchInput.onValueChanged.RemoveAllListeners();
         _searchInput.onValueChanged.AddListener((string input) => {
-
+            UpdateItemList(_selectedType, _selectedSubtype);
         });
 
         var scrollView = transform.Find("ScrollView").gameObject;
@@ -138,21 +143,22 @@ public class ItemPanel : MonoBehaviour
         var toggles = _subtypeGroup.transform;
 
         int togglenum = _typeList[type].Length;
+        toggles.GetChild(0).GetComponentInChildren<TextMeshProUGUI>().text = "전체";
         switch(type) {
             case 0:
-                toggles.GetChild(1).GetComponentInChildren<TextMeshProUGUI>().text = "武器";
-                toggles.GetChild(2).GetComponentInChildren<TextMeshProUGUI>().text = "内甲";
-                toggles.GetChild(3).GetComponentInChildren<TextMeshProUGUI>().text = "配饰";
+                toggles.GetChild(1).GetComponentInChildren<TextMeshProUGUI>().text = "무기";
+                toggles.GetChild(2).GetComponentInChildren<TextMeshProUGUI>().text = "내갑";
+                toggles.GetChild(3).GetComponentInChildren<TextMeshProUGUI>().text = "장신구";
                 break;
             case 1:
-                toggles.GetChild(1).GetComponentInChildren<TextMeshProUGUI>().text = "外功";
-                toggles.GetChild(2).GetComponentInChildren<TextMeshProUGUI>().text = "内功";
+                toggles.GetChild(1).GetComponentInChildren<TextMeshProUGUI>().text = "외공";
+                toggles.GetChild(2).GetComponentInChildren<TextMeshProUGUI>().text = "내공";
                 break;
             case 2:
-                toggles.GetChild(1).GetComponentInChildren<TextMeshProUGUI>().text = "食物";
-                toggles.GetChild(2).GetComponentInChildren<TextMeshProUGUI>().text = "丹药";
-                toggles.GetChild(3).GetComponentInChildren<TextMeshProUGUI>().text = "药品";
-                toggles.GetChild(4).GetComponentInChildren<TextMeshProUGUI>().text = "配方";
+                toggles.GetChild(1).GetComponentInChildren<TextMeshProUGUI>().text = "음식";
+                toggles.GetChild(2).GetComponentInChildren<TextMeshProUGUI>().text = "단약";
+                toggles.GetChild(3).GetComponentInChildren<TextMeshProUGUI>().text = "약품";
+                toggles.GetChild(4).GetComponentInChildren<TextMeshProUGUI>().text = "제법";
                 break;
         }
 
@@ -180,10 +186,16 @@ public class ItemPanel : MonoBehaviour
 #endif
 
         _selectedType = maintype;
+        _selectedSubtype = subType;
         var type = _typeList[maintype][0];
         ItemList = _classifiedItems[type].Where(x =>
             (x.Type & _typeList[maintype][subType]) == x.Type)
             .ToList();
+
+        var keyword = _searchInput?.text?.Trim();
+        if (!string.IsNullOrEmpty(keyword)) {
+            ItemList = ItemList.Where(x => x.GetName(true).Contains(keyword)).ToList();
+        }
 
         _infinityScroll.Data = ItemList;
 

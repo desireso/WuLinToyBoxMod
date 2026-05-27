@@ -47,13 +47,17 @@ public class ToyBox : BasePlugin
             Unhollowed_Modules_Folder = Path.Combine(Paths.BepInExRootPath, "interop")
         });
 
-        try {
-            HarmonyInstance.PatchAll(typeof(MiscPatch));
-            //HarmonyInstance.PatchAll(typeof(TestPatch));
-        }
-        catch {
-            LogError("Failed to ");
-        }
+        PatchSafely(
+            typeof(TimeFreezePatch),
+            typeof(RecoverAfterBattlePatch),
+            typeof(NoCombatSightPatch),
+            typeof(NoCombatPerceptionPatch),
+            typeof(NoCombatFoundPatch),
+            typeof(SkillExpPatch),
+            typeof(GiftingRelationPatch),
+            typeof(WalkSpeedPatch),
+            typeof(AchievementHistoryPatch)
+        );
     }
 
     static void LateInit()
@@ -63,6 +67,19 @@ public class ToyBox : BasePlugin
         ToyBoxBehaviour.Setup();
 
         LogMessage($"{MyPluginInfo.PLUGIN_NAME} initialized.");
+    }
+
+    private void PatchSafely(params Type[] patchTypes)
+    {
+        foreach (var patchType in patchTypes) {
+            try {
+                HarmonyInstance.PatchAll(patchType);
+                LogMessage($"Patched {patchType.Name}.");
+            }
+            catch (Exception ex) {
+                LogWarning($"Skipping {patchType.Name}; game API may have changed. {ex.GetType().Name}: {ex.Message}");
+            }
+        }
     }
 
     #region LOGGING
