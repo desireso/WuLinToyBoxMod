@@ -81,6 +81,20 @@ public class SkillExpPatch
     }
 }
 
+public class KungfuBattleExpPatch
+{
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(KungfuInstance), "AddExp")]
+    public static void AddExp_PrePatch(ref int __0)
+    {
+        if (!MiscPanel.Instance) return;
+
+        var multiple = MiscPanel.Instance.KungfuBattleExpMultiple;
+        if (multiple <= 1 || __0 <= 0) return;
+
+        __0 *= multiple;
+    }
+}
 public class GiftingRelationPatch
 {
     [HarmonyPostfix]
@@ -163,3 +177,4 @@ public class MiscPatch
     //}
 
 }
+

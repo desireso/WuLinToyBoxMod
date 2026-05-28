@@ -19,6 +19,7 @@ internal class MiscPanel : MonoBehaviour
 
     private Slider _battleSpeedSlider;
     private TMP_InputField _coinInput;
+    private TMP_InputField _kungfuBattleExpInput;
 
     private InputKeyUGUI _toggleKeyUI;
     private InputKeyUGUI _speedUpKeyUI;
@@ -26,6 +27,7 @@ internal class MiscPanel : MonoBehaviour
     private InputKeyUGUI _recoverKeyUI;
 
     public int ExpMultiple = 1;
+    public int KungfuBattleExpMultiple = 1;
     public int WalkSpeed = 1;
     public int BattleSpeed = 1;
 
@@ -50,6 +52,8 @@ internal class MiscPanel : MonoBehaviour
         _ultimateMartialSwitch = transform.Find("Content/SwitchFunc/UltimateMartial/Switch").gameObject.AddComponent<Switch>();
 
         var expInput = transform.Find("Content/InputFunc/SkillExp/NumInput").GetComponent<TMP_InputField>();
+        SetInputFuncLabel(expInput.transform.parent, "기술 EXP");
+        MoveInputRow(expInput.transform.parent.GetComponent<RectTransform>(), 0);
         expInput.onValueChanged.RemoveAllListeners();
         expInput.onValueChanged.AddListener((string input) => {
             int.TryParse(input, out ExpMultiple);
@@ -57,6 +61,8 @@ internal class MiscPanel : MonoBehaviour
         });
 
         _coinInput = transform.Find("Content/InputFunc/Gold/NumInput").GetComponent<TMP_InputField>();
+        SetInputFuncLabel(_coinInput.transform.parent, "돈");
+        MoveInputRow(_coinInput.transform.parent.GetComponent<RectTransform>(), 2);
         _coinInput.onValueChanged.RemoveAllListeners();
         _coinInput.onValueChanged.AddListener((string input) => {
             if (!long.TryParse(input, out long value))
@@ -66,6 +72,12 @@ internal class MiscPanel : MonoBehaviour
                 inventory.SetCurrency(CurrencyType.Coin, value * 1000);
             }
         });
+
+        _kungfuBattleExpInput = CreateKungfuBattleExpInput(expInput.transform.parent);
+        _kungfuBattleExpInput.onValueChanged.RemoveAllListeners();
+        _kungfuBattleExpInput.onEndEdit.RemoveAllListeners();
+        _kungfuBattleExpInput.onValueChanged.AddListener(SetKungfuBattleExpMultiple);
+        _kungfuBattleExpInput.onEndEdit.AddListener(SetKungfuBattleExpMultiple);
 
         var walkspeedSlider = transform.Find("Content/SliderFunc/WalkSpeed/Slider");
         walkspeedSlider.Find("Text").gameObject.AddComponent<SliderAmountText>();
@@ -113,6 +125,50 @@ internal class MiscPanel : MonoBehaviour
         BindInputKey(_recoverKeyUI, ConfigManager.Recover_Toggle);
     }
 
+
+    private TMP_InputField CreateKungfuBattleExpInput(Transform skillExpRow)
+    {
+        var parent = skillExpRow.parent;
+        var row = Instantiate(skillExpRow.gameObject, parent, false);
+        row.name = "KungfuBattleExp";
+        row.transform.SetSiblingIndex(skillExpRow.GetSiblingIndex() + 1);
+        SetInputFuncLabel(row.transform, "무공 EXP");
+        MoveInputRow(row.GetComponent<RectTransform>(), 1);
+
+        var input = row.transform.Find("NumInput").GetComponent<TMP_InputField>();
+        input.SetTextWithoutNotify(KungfuBattleExpMultiple.ToString());
+        return input;
+    }
+
+    private static void MoveInputRow(RectTransform row, int index)
+    {
+        if (row == null) return;
+
+        row.anchoredPosition = new Vector2(row.anchoredPosition.x, -42f - index * 56f);
+    }
+
+    private static void SetInputFuncLabel(Transform row, string label)
+    {
+        foreach (var text in row.GetComponentsInChildren<TextMeshProUGUI>(true)) {
+            if (text.GetComponentInParent<TMP_InputField>() != null) continue;
+
+            text.text = label;
+            text.enableWordWrapping = false;
+            text.overflowMode = TextOverflowModes.Overflow;
+            return;
+        }
+    }
+
+    private void SetKungfuBattleExpMultiple(string input)
+    {
+        if (!int.TryParse(input, out var value)) {
+            value = 1;
+        }
+
+        KungfuBattleExpMultiple = Mathf.Clamp(value, 1, 1000);
+        _kungfuBattleExpInput.SetTextWithoutNotify(KungfuBattleExpMultiple.ToString());
+        ToyBox.LogMessage($"Kungfu battle exp multiple: {KungfuBattleExpMultiple}");
+    }
     private void BindInputKey(InputKeyUGUI obj, ConfigElement config)
     {
         obj.Key = config.Value;
@@ -160,3 +216,5 @@ internal class MiscPanel : MonoBehaviour
     }
 
 }
+
+
