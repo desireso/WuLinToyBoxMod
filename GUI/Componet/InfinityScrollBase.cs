@@ -35,6 +35,10 @@ internal abstract class InfinityScrollBase : MonoBehaviour
         RectTransform contentRect = _scrollRect.content;
         contentRect.sizeDelta = new Vector2(contentRect.sizeDelta.x, (TotalItems + Columns - 1) / Columns * _itemHeight);
         _scrollRect.SetVerticalNormalizedPosition(1);
+
+        if (_items.Count > 0) {
+            UpdateItems(0);
+        }
     }
 
     protected virtual void Start()
@@ -70,10 +74,11 @@ internal abstract class InfinityScrollBase : MonoBehaviour
 
     protected virtual void LateUpdate()
     {
+        if (_itemHeight <= 0 || Columns <= 0) return;
+
         int startIndex = Mathf.FloorToInt(_scrollRect.content.anchoredPosition.y / _itemHeight) * Columns;
-        if (startIndex <= TotalItems - Columns) {
-            UpdateItems(startIndex);
-        }
+        int maxStartIndex = TotalItems <= 0 ? 0 : ((TotalItems - 1) / Columns) * Columns;
+        UpdateItems(Mathf.Clamp(startIndex, 0, maxStartIndex));
     }
 
 

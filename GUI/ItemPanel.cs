@@ -31,6 +31,8 @@ public class ItemPanel : MonoBehaviour
 
     private int _selectedType = 0;
     private int _selectedSubtype = 0;
+    private string _searchKeyword = "";
+    private string _lastRawSearchText = "";
 
     public List<ItemData> ItemList = new ();
     public int Number = 1;
@@ -73,6 +75,7 @@ public class ItemPanel : MonoBehaviour
         }
         
         _numberInput = transform.Find("NumInput").GetComponent<TMP_InputField>();
+        SetNearbyLabel(_numberInput.transform, "수량");
         _numberInput.onValueChanged.RemoveAllListeners();
         _numberInput.onValueChanged.AddListener((string input) => {
             int.TryParse(input, out Number);
@@ -80,8 +83,13 @@ public class ItemPanel : MonoBehaviour
         });
 
         _searchInput = transform.Find("SearchInput").GetComponent<TMP_InputField>();
+        _searchInput.SetTextWithoutNotify("");
+        if (_searchInput.textComponent != null) {
+            _searchInput.textComponent.text = "";
+        }
         _searchInput.onValueChanged.RemoveAllListeners();
         _searchInput.onValueChanged.AddListener((string input) => {
+            _searchKeyword = GetSearchKeyword(input);
             UpdateItemList(_selectedType, _selectedSubtype);
         });
 
@@ -95,6 +103,20 @@ public class ItemPanel : MonoBehaviour
         _infinityScroll.SpaceY = 25;
         
         LoadItemData();
+        UpdateSubToggles(_selectedType);
+        UpdateItemList(_selectedType, _selectedSubtype);
+    }
+
+    private void LateUpdate()
+    {
+        if (_searchInput == null) return;
+
+        string rawSearchText = ReadRawSearchText();
+        if (rawSearchText == _lastRawSearchText) return;
+
+        _lastRawSearchText = rawSearchText;
+        _searchKeyword = GetSearchKeyword(rawSearchText);
+        UpdateItemList(_selectedType, _selectedSubtype);
     }
 
     private void LoadItemData()
@@ -192,9 +214,9 @@ public class ItemPanel : MonoBehaviour
             (x.Type & _typeList[maintype][subType]) == x.Type)
             .ToList();
 
-        var keyword = _searchInput?.text?.Trim();
-        if (!string.IsNullOrEmpty(keyword)) {
-            ItemList = ItemList.Where(x => x.GetName(true).Contains(keyword)).ToList();
+        int beforeSearchCount = ItemList.Count;
+        if (!string.IsNullOrEmpty(_searchKeyword)) {
+            ItemList = ItemList.Where(x => MatchesSearch(x, _searchKeyword)).ToList();
         }
 
         _infinityScroll.Data = ItemList;
@@ -203,6 +225,207 @@ public class ItemPanel : MonoBehaviour
         stopwatch.Stop();
         ToyBox.LogMessage("UpdateItemList Execution time: " + stopwatch.ElapsedMilliseconds + "ms");
 #endif
+    }
+
+    private static string GetSearchKeyword(string rawKeyword)
+    {
+        rawKeyword ??= "";
+        if (rawKeyword.Contains("<u>", StringComparison.OrdinalIgnoreCase) ||
+            rawKeyword.Contains("</u>", StringComparison.OrdinalIgnoreCase)) {
+            return "";
+        }
+
+        string keyword = NormalizeSearchText(rawKeyword);
+        if (string.IsNullOrEmpty(keyword)) return "";
+
+        if (keyword.Equals("Enter text ...", StringComparison.OrdinalIgnoreCase)) {
+            return "";
+        }
+
+        if (!keyword.Any(char.IsLetterOrDigit)) {
+            return "";
+        }
+
+        return keyword;
+    }
+
+    private string ReadRawSearchText()
+    {
+        string inputText = _searchInput?.text ?? "";
+        if (IsUsableRawSearchText(inputText)) {
+            return inputText;
+        }
+
+        foreach (var text in _searchInput.GetComponentsInChildren<TextMeshProUGUI>(true)) {
+            if (text == null) continue;
+
+            string name = text.transform.name;
+            if (name.Contains("Placeholder", StringComparison.OrdinalIgnoreCase)) continue;
+
+            string candidate = text.text ?? "";
+            if (IsUsableRawSearchText(candidate)) {
+                return candidate;
+            }
+        }
+
+        return "";
+    }
+
+    private static (string Name, string PlainName, string Reading, string CompactReading) GetSearchText(ItemData item)
+    {
+        string name = NormalizeSearchText(item.GetName(true));
+        string plainName = NormalizeSearchText(item.GetName(false));
+        string reading = NormalizeSearchText(HanjaReading.ToHangulReading($"{name} {plainName}"));
+        string compactReading = reading.Replace(" ", "");
+        return (name, plainName, reading, compactReading);
+    }
+
+    private static bool IsUsableRawSearchText(string text)
+    {
+        string keyword = GetSearchKeyword(text);
+        return !string.IsNullOrEmpty(keyword);
+    }
+
+    private static void SetNearbyLabel(Transform target, string label)
+    {
+        if (target == null) return;
+
+        var targetRect = target.GetComponent<RectTransform>();
+        if (targetRect == null) return;
+
+        TranslateQuantityLabels(target.root);
+
+        Vector3 targetPosition = targetRect.TransformPoint(targetRect.rect.center);
+        var root = target.root;
+        TextMeshProUGUI best = null;
+        float bestDistance = float.MaxValue;
+
+        foreach (var text in root.GetComponentsInChildren<TextMeshProUGUI>(true)) {
+            if (text == null || text.GetComponentInParent<TMP_InputField>() != null) continue;
+
+            string textName = text.transform.name;
+            string parentName = text.transform.parent?.name ?? "";
+            string current = text.text?.Trim() ?? "";
+            bool nameHint = textName.Contains("Num", StringComparison.OrdinalIgnoreCase) ||
+                            parentName.Contains("Num", StringComparison.OrdinalIgnoreCase);
+            bool textHint = current is "數量" or "数量" or "數" or "量";
+
+            if (nameHint || textHint) {
+                text.text = label;
+                return;
+            }
+
+            var textRect = text.GetComponent<RectTransform>();
+            if (textRect == null) continue;
+
+            Vector3 textPosition = textRect.TransformPoint(textRect.rect.center);
+            float verticalDistance = Mathf.Abs(textPosition.y - targetPosition.y);
+            float horizontalDistance = Mathf.Abs(textPosition.x - targetPosition.x);
+            if (verticalDistance > 80f || horizontalDistance > 700f) continue;
+
+            float distance = Vector3.Distance(textPosition, targetPosition);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = text;
+            }
+        }
+
+        if (best != null && bestDistance < 700f) {
+            best.text = label;
+        }
+    }
+
+    private static void TranslateQuantityLabels(Transform root)
+    {
+        if (root == null) return;
+
+        foreach (var text in root.GetComponentsInChildren<TextMeshProUGUI>(true)) {
+            string current = text.text?.Trim() ?? "";
+            if (current is "\u6578\u91cf" or "\u6570\u91cf" or "\u6578" or "\u6570") {
+                text.text = "수량";
+            }
+        }
+    }
+
+    private static bool MatchesSearch(ItemData item, string keyword)
+    {
+        string normalizedKeyword = NormalizeSearchText(keyword);
+        string compactKeyword = normalizedKeyword.Replace(" ", "");
+        if (string.IsNullOrEmpty(normalizedKeyword)) return true;
+
+        var searchText = GetSearchText(item);
+        return MatchesSearchText(searchText.Name, normalizedKeyword, compactKeyword) ||
+               MatchesSearchText(searchText.PlainName, normalizedKeyword, compactKeyword) ||
+               MatchesSearchText(searchText.Reading, normalizedKeyword, compactKeyword);
+    }
+
+    private static bool MatchesSearchText(string text, string keyword, string compactKeyword)
+    {
+        string normalizedText = NormalizeSearchText(text);
+        if (normalizedText.Contains(keyword, StringComparison.OrdinalIgnoreCase)) {
+            return true;
+        }
+
+        string readingText = NormalizeSearchText(HanjaReading.ToHangulReading(normalizedText));
+        if (readingText.Contains(keyword, StringComparison.OrdinalIgnoreCase)) {
+            return true;
+        }
+
+        string compactReadingText = readingText.Replace(" ", "");
+        if (compactKeyword.Length > 0 &&
+            compactReadingText.Contains(compactKeyword, StringComparison.OrdinalIgnoreCase)) {
+            return true;
+        }
+
+        return compactKeyword.Length > 0 &&
+               normalizedText.Replace(" ", "").Contains(compactKeyword, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizeSearchText(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return "";
+
+        string stripped = StripRichText(text).Replace("\uFFFD", "");
+        var result = new System.Text.StringBuilder(stripped.Length);
+
+        foreach (char c in stripped) {
+            var category = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c);
+            if (category is System.Globalization.UnicodeCategory.Format or
+                System.Globalization.UnicodeCategory.Control or
+                System.Globalization.UnicodeCategory.NonSpacingMark) {
+                continue;
+            }
+
+            result.Append(c);
+        }
+
+        return result.ToString().Trim();
+    }
+
+    private static string StripRichText(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return "";
+
+        var result = new System.Text.StringBuilder(text.Length);
+        bool inTag = false;
+
+        foreach (char c in text) {
+            if (c == '<') {
+                inTag = true;
+                continue;
+            }
+
+            if (c == '>') {
+                inTag = false;
+                continue;
+            }
+
+            if (!inTag) {
+                result.Append(c);
+            }
+        }
+
+        return result.ToString();
     }
 
 }

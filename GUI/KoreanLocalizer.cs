@@ -5,6 +5,8 @@ namespace HaxxToyBox.GUI;
 internal static class KoreanLocalizer
 {
     private static readonly Dictionary<string, string> TextMap = new() {
+        { "\u6578\u91cf", "수량" },
+        { "\u6570\u91cf", "수량" },
         { "Role", "프로필" },
         { "Roles", "프로필" },
         { "Profile", "프로필" },
