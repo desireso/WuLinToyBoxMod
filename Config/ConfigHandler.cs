@@ -17,6 +17,11 @@ public class ConfigHandler
         };
     }
 
+    public ConfigEntry<T> BindConfig<T>(string name, string description, T defaultValue)
+    {
+        return Config.Bind(SEC_NAME, name, defaultValue, description);
+    }
+
     public KeyCode GetConfigValue(ConfigElement element)
     {
         if (Config.TryGetEntry(SEC_NAME, element.Name, out ConfigEntry<KeyCode> configEntry))

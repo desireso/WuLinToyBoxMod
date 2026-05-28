@@ -1,4 +1,5 @@
 ﻿using GameData;
+using BepInEx.Configuration;
 using TMPro;
 using WuLin;
 using HaxxToyBox.Config;
@@ -19,6 +20,7 @@ internal class MiscPanel : MonoBehaviour
 
     private Slider _battleSpeedSlider;
     private TMP_InputField _coinInput;
+    private TMP_InputField _skillExpInput;
     private TMP_InputField _kungfuBattleExpInput;
 
     private InputKeyUGUI _toggleKeyUI;
@@ -50,18 +52,25 @@ internal class MiscPanel : MonoBehaviour
         _relationSwitch = transform.Find("Content/SwitchFunc/Friendship/Switch").gameObject.AddComponent<Switch>();
         _enableAchieveSwitch = transform.Find("Content/SwitchFunc/EnableAchievement/Switch").gameObject.AddComponent<Switch>();
         _ultimateMartialSwitch = transform.Find("Content/SwitchFunc/UltimateMartial/Switch").gameObject.AddComponent<Switch>();
+        BindSwitch(_timeFreezeSwitch, ConfigManager.TimeFreezeEnabled);
+        BindSwitch(_recoverSwitch, ConfigManager.RecoverEnabled);
+        BindSwitch(_noCombatSwitch, ConfigManager.NoCombatEnabled);
+        BindSwitch(_relationSwitch, ConfigManager.RelationEnabled);
+        BindSwitch(_enableAchieveSwitch, ConfigManager.EnableAchievement);
+        BindSwitch(_ultimateMartialSwitch, ConfigManager.UltimateMartial);
         FitSwitchColumn();
         FitInputColumn();
 
-        var expInput = transform.Find("Content/InputFunc/SkillExp/NumInput").GetComponent<TMP_InputField>();
-        SetInputFuncLabel(expInput.transform.parent, "기술 EXP");
-        MoveInputRow(expInput.transform.parent.GetComponent<RectTransform>(), 1);
-        FitInputRow(expInput.transform.parent, expInput);
-        expInput.onValueChanged.RemoveAllListeners();
-        expInput.onValueChanged.AddListener((string input) => {
-            int.TryParse(input, out ExpMultiple);
-            ExpMultiple = Mathf.Clamp(ExpMultiple, 1, 1000);
-        });
+        _skillExpInput = transform.Find("Content/InputFunc/SkillExp/NumInput").GetComponent<TMP_InputField>();
+        SetInputFuncLabel(_skillExpInput.transform.parent, "기술 EXP");
+        MoveInputRow(_skillExpInput.transform.parent.GetComponent<RectTransform>(), 1);
+        FitInputRow(_skillExpInput.transform.parent, _skillExpInput);
+        ExpMultiple = Mathf.Clamp(ConfigManager.SkillExpMultiple.Value, 1, 1000);
+        _skillExpInput.SetTextWithoutNotify(ExpMultiple.ToString());
+        _skillExpInput.onValueChanged.RemoveAllListeners();
+        _skillExpInput.onEndEdit.RemoveAllListeners();
+        _skillExpInput.onValueChanged.AddListener(SetSkillExpMultiple);
+        _skillExpInput.onEndEdit.AddListener(SetSkillExpMultiple);
 
         _coinInput = transform.Find("Content/InputFunc/Gold/NumInput").GetComponent<TMP_InputField>();
         SetInputFuncLabel(_coinInput.transform.parent, "돈");
@@ -77,7 +86,8 @@ internal class MiscPanel : MonoBehaviour
             }
         });
 
-        _kungfuBattleExpInput = CreateKungfuBattleExpInput(expInput.transform.parent);
+        KungfuBattleExpMultiple = Mathf.Clamp(ConfigManager.KungfuExpMultiple.Value, 1, 1000);
+        _kungfuBattleExpInput = CreateKungfuBattleExpInput(_skillExpInput.transform.parent);
         _kungfuBattleExpInput.onValueChanged.RemoveAllListeners();
         _kungfuBattleExpInput.onEndEdit.RemoveAllListeners();
         _kungfuBattleExpInput.onValueChanged.AddListener(SetKungfuBattleExpMultiple);
@@ -85,8 +95,12 @@ internal class MiscPanel : MonoBehaviour
 
         var walkspeedSlider = transform.Find("Content/SliderFunc/WalkSpeed/Slider");
         walkspeedSlider.Find("Text").gameObject.AddComponent<SliderAmountText>();
-        walkspeedSlider.GetComponent<Slider>().onValueChanged.AddListener((float value) => {
+        var walkSlider = walkspeedSlider.GetComponent<Slider>();
+        WalkSpeed = Mathf.Clamp(ConfigManager.WalkSpeed.Value, (int)walkSlider.minValue, (int)walkSlider.maxValue);
+        walkSlider.value = WalkSpeed;
+        walkSlider.onValueChanged.AddListener((float value) => {
             WalkSpeed = (int)value;
+            SaveConfig(ConfigManager.WalkSpeed, WalkSpeed);
             //var player = RoamingManager.Instance?.player;
             //if (player == null) return;
 
@@ -100,9 +114,12 @@ internal class MiscPanel : MonoBehaviour
 
         _battleSpeedSlider = transform.Find("Content/SliderFunc/BattleSpeed/Slider").GetComponent<Slider>();
         _battleSpeedSlider.transform.Find("Text").gameObject.AddComponent<SliderAmountText>();
+        BattleSpeed = Mathf.Clamp(ConfigManager.BattleSpeed.Value, (int)_battleSpeedSlider.minValue, (int)_battleSpeedSlider.maxValue);
+        _battleSpeedSlider.value = BattleSpeed;
         _battleSpeedSlider.onValueChanged.AddListener((float value) => {
             GameTimer.Instance.AddOrSetTimeScale(this, value);
             BattleSpeed = (int)value;
+            SaveConfig(ConfigManager.BattleSpeed, BattleSpeed);
         });
 
         var buttonAchievements = transform.Find("Content/ButtonFunc/Achievement").gameObject;
@@ -272,6 +289,21 @@ internal class MiscPanel : MonoBehaviour
         return null;
     }
 
+    private static void BindSwitch(Switch toggleSwitch, ConfigEntry<bool> config)
+    {
+        toggleSwitch.SetToggled(config.Value, false);
+        toggleSwitch.OnChanged += value => SaveConfig(config, value);
+    }
+
+    private static void SaveConfig<T>(ConfigEntry<T> config, T value)
+    {
+        if (!EqualityComparer<T>.Default.Equals(config.Value, value)) {
+            config.Value = value;
+        }
+
+        ConfigManager.Handler.SaveConfig();
+    }
+
     private static void FitButtonText(GameObject button, float fontSize)
     {
         var text = button.GetComponentInChildren<TextMeshProUGUI>(true);
@@ -290,8 +322,20 @@ internal class MiscPanel : MonoBehaviour
 
         KungfuBattleExpMultiple = Mathf.Clamp(value, 1, 1000);
         _kungfuBattleExpInput.SetTextWithoutNotify(KungfuBattleExpMultiple.ToString());
-        ToyBox.LogMessage($"Kungfu battle exp multiple: {KungfuBattleExpMultiple}");
+        SaveConfig(ConfigManager.KungfuExpMultiple, KungfuBattleExpMultiple);
     }
+
+    private void SetSkillExpMultiple(string input)
+    {
+        if (!int.TryParse(input, out var value)) {
+            value = 1;
+        }
+
+        ExpMultiple = Mathf.Clamp(value, 1, 1000);
+        _skillExpInput.SetTextWithoutNotify(ExpMultiple.ToString());
+        SaveConfig(ConfigManager.SkillExpMultiple, ExpMultiple);
+    }
+
     private void BindInputKey(InputKeyUGUI obj, ConfigElement config)
     {
         obj.Key = config.Value;
@@ -327,6 +371,8 @@ internal class MiscPanel : MonoBehaviour
         Instance.BattleSpeed = Math.Max(Instance.BattleSpeed-1, min);
 
         GameTimer.Instance.AddOrSetTimeScale(Instance, Instance.BattleSpeed);
+        Instance._battleSpeedSlider.SetValueWithoutNotify(Instance.BattleSpeed);
+        SaveConfig(ConfigManager.BattleSpeed, Instance.BattleSpeed);
     }
 
     public static void SpeedUp()
@@ -336,6 +382,8 @@ internal class MiscPanel : MonoBehaviour
         Instance.BattleSpeed = Math.Min(Instance.BattleSpeed+1, max);
 
         GameTimer.Instance.AddOrSetTimeScale(Instance, Instance.BattleSpeed);
+        Instance._battleSpeedSlider.SetValueWithoutNotify(Instance.BattleSpeed);
+        SaveConfig(ConfigManager.BattleSpeed, Instance.BattleSpeed);
     }
 
 }

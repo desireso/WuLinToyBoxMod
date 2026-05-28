@@ -3,6 +3,8 @@
 [RegisterInIl2Cpp]
 public class Switch : MonoBehaviour
 {
+    public event Action<bool> OnChanged;
+
     private Button _button;
     private Animator _animator;
 
@@ -13,6 +15,7 @@ public class Switch : MonoBehaviour
     private Image _handleDisabledImage;
 
     private bool _switchEnabled;
+    private bool _refreshVisuals;
 
     public Switch(IntPtr ptr) : base(ptr) { }
 
@@ -26,13 +29,14 @@ public class Switch : MonoBehaviour
         _handleEnabledImage = transform.GetChild(1).GetChild(0).GetComponent<Image>();
         _handleDisabledImage = transform.GetChild(1).GetChild(1).GetComponent<Image>();
 
-        _switchEnabled = true;
-        Toggle();
+        _switchEnabled = false;
+        ApplyState(true);
     }
 
     private void OnEnable()
     {
         _button.onClick.AddListener(Toggle);
+        _refreshVisuals = true;
     }
 
     private void OnDisable()
@@ -41,10 +45,34 @@ public class Switch : MonoBehaviour
         _button.onClick.RemoveAllListeners();
     }
 
+    private void LateUpdate()
+    {
+        if (!_refreshVisuals) return;
+
+        _refreshVisuals = false;
+        ApplyState(false);
+    }
+
     public void Toggle()
     {
-        _switchEnabled = !_switchEnabled;
+        SetToggled(!_switchEnabled);
+    }
 
+    public void SetToggled(bool value, bool notify = true)
+    {
+        if (_switchEnabled == value) return;
+
+        _switchEnabled = value;
+        ApplyState(true);
+        _refreshVisuals = true;
+
+        if (notify) {
+            OnChanged?.Invoke(_switchEnabled);
+        }
+    }
+
+    private void ApplyState(bool animate)
+    {
         if (_switchEnabled) {
             _bgDisabledImage.gameObject.SetActive(false);
             _bgEnabledImage.gameObject.SetActive(true);
@@ -57,6 +85,10 @@ public class Switch : MonoBehaviour
             _handleEnabledImage.gameObject.SetActive(false);
             _handleDisabledImage.gameObject.SetActive(true);
         }
+
+        if (!animate) return;
+
+        _animator.ResetTrigger(_switchEnabled ? "Disable" : "Enable");
         _animator.SetTrigger(_switchEnabled ? "Enable" : "Disable");
     }
 
