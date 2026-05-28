@@ -53,7 +53,7 @@ internal class MiscPanel : MonoBehaviour
 
         var expInput = transform.Find("Content/InputFunc/SkillExp/NumInput").GetComponent<TMP_InputField>();
         SetInputFuncLabel(expInput.transform.parent, "기술 EXP");
-        MoveInputRow(expInput.transform.parent.GetComponent<RectTransform>(), 0);
+        MoveInputRow(expInput.transform.parent.GetComponent<RectTransform>(), 1);
         expInput.onValueChanged.RemoveAllListeners();
         expInput.onValueChanged.AddListener((string input) => {
             int.TryParse(input, out ExpMultiple);
@@ -62,7 +62,7 @@ internal class MiscPanel : MonoBehaviour
 
         _coinInput = transform.Find("Content/InputFunc/Gold/NumInput").GetComponent<TMP_InputField>();
         SetInputFuncLabel(_coinInput.transform.parent, "돈");
-        MoveInputRow(_coinInput.transform.parent.GetComponent<RectTransform>(), 2);
+        MoveInputRow(_coinInput.transform.parent.GetComponent<RectTransform>(), 0);
         _coinInput.onValueChanged.RemoveAllListeners();
         _coinInput.onValueChanged.AddListener((string input) => {
             if (!long.TryParse(input, out long value))
@@ -103,6 +103,7 @@ internal class MiscPanel : MonoBehaviour
 
         var buttonAchievements = transform.Find("Content/ButtonFunc/Achievement").gameObject;
         buttonAchievements.AddComponent<FadeButtonWrapper>();
+        FitButtonText(buttonAchievements, 22);
         buttonAchievements.GetComponent<Button>().onClick.AddListener(() => {
             var achievementDB = BaseDataClass.GetGameData<AchievementDataScriptObject>().data;
             foreach (var id in achievementDB.Keys) {
@@ -112,6 +113,7 @@ internal class MiscPanel : MonoBehaviour
 
         var buttonRecover = transform.Find("Content/ButtonFunc/Recover").gameObject;
         buttonRecover.AddComponent<FadeButtonWrapper>();
+        FitButtonText(buttonRecover, 24);
         buttonRecover.GetComponent<Button>().onClick.AddListener(RecoverAll);
 
         _toggleKeyUI = transform.Find("Content/ConfigFunc/PanelToggle").gameObject.AddComponent<InputKeyUGUI>();
@@ -133,7 +135,7 @@ internal class MiscPanel : MonoBehaviour
         row.name = "KungfuBattleExp";
         row.transform.SetSiblingIndex(skillExpRow.GetSiblingIndex() + 1);
         SetInputFuncLabel(row.transform, "무공 EXP");
-        MoveInputRow(row.GetComponent<RectTransform>(), 1);
+        MoveInputRow(row.GetComponent<RectTransform>(), 2);
 
         var input = row.transform.Find("NumInput").GetComponent<TMP_InputField>();
         input.SetTextWithoutNotify(KungfuBattleExpMultiple.ToString());
@@ -144,7 +146,7 @@ internal class MiscPanel : MonoBehaviour
     {
         if (row == null) return;
 
-        row.anchoredPosition = new Vector2(row.anchoredPosition.x, -42f - index * 56f);
+        row.anchoredPosition = new Vector2(row.anchoredPosition.x, -22f - index * 44f);
     }
 
     private static void SetInputFuncLabel(Transform row, string label)
@@ -157,6 +159,16 @@ internal class MiscPanel : MonoBehaviour
             text.overflowMode = TextOverflowModes.Overflow;
             return;
         }
+    }
+
+    private static void FitButtonText(GameObject button, float fontSize)
+    {
+        var text = button.GetComponentInChildren<TextMeshProUGUI>(true);
+        if (text == null) return;
+
+        text.enableWordWrapping = false;
+        text.overflowMode = TextOverflowModes.Ellipsis;
+        text.fontSize = fontSize;
     }
 
     private void SetKungfuBattleExpMultiple(string input)

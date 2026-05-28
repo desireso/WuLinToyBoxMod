@@ -16,7 +16,7 @@ internal class MartialEntry : MonoBehaviour
             if (value == _data || value == null) return;
 
             _data = value;
-            _nameText.text = GetRichText(_data.UName, _data.Rarity);
+            _nameText.text = GameUtil.GetNameWithColor(_data);
             _icon.sprite = GetIcon(_data.Icon);
         }
     }

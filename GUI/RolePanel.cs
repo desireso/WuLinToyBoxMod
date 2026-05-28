@@ -51,6 +51,19 @@ internal class RolePanel : MonoBehaviour
         {"repexp", "名声经验"}, {"coin", "金币"}
      };
 
+    readonly Dictionary<string, string> keyToKoreanLabelMap = new() {
+        {"gongji", "공격"}, {"qinggong", "경공"}, {"quanzhang", "권장"}, {"shuadao", "도법"},
+        {"duanbing", "단병"}, {"mingzhong", "명중"}, {"baoji", "치명"}, {"yishu", "의술"},
+        {"anqi", "암기"}, {"wuxuechangshi", "무학 상식"}, {"hp", "생명"}, {"mp", "내력"},
+        {"point", "혈도 점수"}, {"exp", "경험"}, {"lv", "등급"}, {"fangyu", "방어"}, {"jiqi", "집기 속도"},
+        {"yujian", "어검"}, {"changbing", "장병"}, {"yinlv", "음률"}, {"shanbi", "회피"},
+        {"gedang", "막기"}, {"dushu", "독술"}, {"hubo", "연격"}, {"shizhannengli", "실전 능력"},
+        {"bili", "근력"}, {"tizhi", "체질"}, {"minjie", "민첩"}, {"wuxing", "오성"},
+        {"fuyuan", "행운"}, {"rende", "인덕"}, {"yiqi", "의리"}, {"lijie", "예절"},
+        {"xinyong", "신용"}, {"zhihui", "지혜"}, {"yongqi", "용기"}, {"replv", "명성 등급"},
+        {"repexp", "명성 경험"}, {"coin", "돈"}
+    };
+
     public static RolePanel Instance { get; private set; }
 
     public RolePanel(IntPtr ptr) : base(ptr) { }
@@ -68,6 +81,8 @@ internal class RolePanel : MonoBehaviour
         TraitList = transform.Find("Traits/Viewport/Content");
         TraitEntryPrefab = transform.Find("Traits/Viewport/EntryPrefab").gameObject;
         TraitEntryPrefab.AddComponent<TraitDelEntry>();
+
+        UpdateInfoLabels();
     }
 
     private void SetupRoleList()
@@ -117,18 +132,20 @@ internal class RolePanel : MonoBehaviour
 
     private void UpdateInfoGroup(GameObject group, string[] keys)
     {
-        if (Character == null) return;
-
         int iterations = Mathf.Min(group.transform.childCount, keys.Length);
-        var propSource = GameCharacterInstance.FinalPropSource.Origin;
         for (int i = 0; i < iterations; i++) {
             Transform child = group.transform.GetChild(i);
+            SetInfoLabel(child, keyToKoreanLabelMap[keys[i]]);
+
+            if (Character == null) continue;
+
             var inputObj = child.GetComponentInChildren<TMP_InputField>();
             if (inputObj == null) continue;
 
             string formatstr = percentageKeys.Contains(keys[i]) ? "F3" : "";
 
             string propKey = keyToLabelMap[keys[i]];
+            var propSource = GameCharacterInstance.FinalPropSource.Origin;
             inputObj.text = Character.GetFinalPropAsDecimal(propKey, propSource).ToString(formatstr);
 
             inputObj.onValueChanged.RemoveAllListeners();
@@ -136,6 +153,34 @@ internal class RolePanel : MonoBehaviour
                 bool ret = ChangeProperty(propKey, input);
                 if (!ret) inputObj.text = inputObj.m_OriginalText;
             });
+        }
+    }
+
+    private void UpdateInfoLabels()
+    {
+        UpdateInfoLabels(LeftInfoGroup, leftRoleInfoKeys);
+        UpdateInfoLabels(RightInfoGroup, rightRoleInfoKeys);
+        UpdateInfoLabels(BottomInfoGroup, bottomRoleInfoKeys);
+        UpdateInfoLabels(AdditionInfoGroup, additionRoleInfoKeys);
+    }
+
+    private void UpdateInfoLabels(GameObject group, string[] keys)
+    {
+        int iterations = Mathf.Min(group.transform.childCount, keys.Length);
+        for (int i = 0; i < iterations; i++) {
+            SetInfoLabel(group.transform.GetChild(i), keyToKoreanLabelMap[keys[i]]);
+        }
+    }
+
+    private static void SetInfoLabel(Transform row, string label)
+    {
+        foreach (var text in row.GetComponentsInChildren<TextMeshProUGUI>(true)) {
+            if (text.GetComponentInParent<TMP_InputField>() != null) continue;
+
+            text.text = label;
+            text.enableWordWrapping = false;
+            text.overflowMode = TextOverflowModes.Overflow;
+            return;
         }
     }
 
