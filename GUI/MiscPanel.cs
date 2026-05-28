@@ -50,10 +50,13 @@ internal class MiscPanel : MonoBehaviour
         _relationSwitch = transform.Find("Content/SwitchFunc/Friendship/Switch").gameObject.AddComponent<Switch>();
         _enableAchieveSwitch = transform.Find("Content/SwitchFunc/EnableAchievement/Switch").gameObject.AddComponent<Switch>();
         _ultimateMartialSwitch = transform.Find("Content/SwitchFunc/UltimateMartial/Switch").gameObject.AddComponent<Switch>();
+        FitSwitchColumn();
+        FitInputColumn();
 
         var expInput = transform.Find("Content/InputFunc/SkillExp/NumInput").GetComponent<TMP_InputField>();
         SetInputFuncLabel(expInput.transform.parent, "기술 EXP");
         MoveInputRow(expInput.transform.parent.GetComponent<RectTransform>(), 1);
+        FitInputRow(expInput.transform.parent, expInput);
         expInput.onValueChanged.RemoveAllListeners();
         expInput.onValueChanged.AddListener((string input) => {
             int.TryParse(input, out ExpMultiple);
@@ -63,6 +66,7 @@ internal class MiscPanel : MonoBehaviour
         _coinInput = transform.Find("Content/InputFunc/Gold/NumInput").GetComponent<TMP_InputField>();
         SetInputFuncLabel(_coinInput.transform.parent, "돈");
         MoveInputRow(_coinInput.transform.parent.GetComponent<RectTransform>(), 0);
+        FitInputRow(_coinInput.transform.parent, _coinInput);
         _coinInput.onValueChanged.RemoveAllListeners();
         _coinInput.onValueChanged.AddListener((string input) => {
             if (!long.TryParse(input, out long value))
@@ -127,7 +131,6 @@ internal class MiscPanel : MonoBehaviour
         BindInputKey(_recoverKeyUI, ConfigManager.Recover_Toggle);
     }
 
-
     private TMP_InputField CreateKungfuBattleExpInput(Transform skillExpRow)
     {
         var parent = skillExpRow.parent;
@@ -138,6 +141,7 @@ internal class MiscPanel : MonoBehaviour
         MoveInputRow(row.GetComponent<RectTransform>(), 2);
 
         var input = row.transform.Find("NumInput").GetComponent<TMP_InputField>();
+        FitInputRow(row.transform, input);
         input.SetTextWithoutNotify(KungfuBattleExpMultiple.ToString());
         return input;
     }
@@ -146,7 +150,59 @@ internal class MiscPanel : MonoBehaviour
     {
         if (row == null) return;
 
-        row.anchoredPosition = new Vector2(row.anchoredPosition.x, -22f - index * 44f);
+        row.anchoredPosition = new Vector2(297.1f, -50f - index * 110f);
+        row.sizeDelta = new Vector2(row.sizeDelta.x, 100f);
+    }
+
+    private void FitSwitchColumn()
+    {
+        var group = transform.Find("Content/SwitchFunc")?.GetComponent<RectTransform>();
+        if (group != null) {
+            group.sizeDelta = new Vector2(590f, group.sizeDelta.y);
+        }
+
+        FitSwitchRow("TimeFreeze");
+        FitSwitchRow("Recover");
+        FitSwitchRow("NoCombat");
+        FitSwitchRow("Friendship");
+        FitSwitchRow("EnableAchievement");
+        FitSwitchRow("UltimateMartial");
+    }
+
+    private void FitSwitchRow(string rowName)
+    {
+        var row = transform.Find($"Content/SwitchFunc/{rowName}")?.GetComponent<RectTransform>();
+        if (row == null) return;
+
+        row.sizeDelta = new Vector2(590f, row.sizeDelta.y);
+
+        var label = GetLabel(row.transform);
+        var labelRect = label?.GetComponent<RectTransform>();
+        if (label != null) {
+            label.fontSize = 32f;
+            label.enableWordWrapping = false;
+            label.overflowMode = TextOverflowModes.Overflow;
+            label.alignment = TextAlignmentOptions.MidlineLeft;
+        }
+
+        if (labelRect != null) {
+            labelRect.sizeDelta = new Vector2(360f, labelRect.sizeDelta.y);
+            labelRect.anchoredPosition = new Vector2(180f, labelRect.anchoredPosition.y);
+        }
+
+        var switchRect = row.transform.Find("Switch")?.GetComponent<RectTransform>();
+        if (switchRect != null) {
+            switchRect.anchoredPosition = new Vector2(-205f, switchRect.anchoredPosition.y);
+        }
+    }
+
+    private void FitInputColumn()
+    {
+        var group = transform.Find("Content/InputFunc")?.GetComponent<RectTransform>();
+        if (group == null) return;
+
+        group.anchoredPosition = new Vector2(720f, 342f);
+        group.sizeDelta = new Vector2(590f, 300f);
     }
 
     private static void SetInputFuncLabel(Transform row, string label)
@@ -159,6 +215,61 @@ internal class MiscPanel : MonoBehaviour
             text.overflowMode = TextOverflowModes.Overflow;
             return;
         }
+    }
+
+    private static void FitInputRow(Transform row, TMP_InputField input)
+    {
+        if (row == null || input == null) return;
+
+        foreach (var text in row.GetComponentsInChildren<TextMeshProUGUI>(true)) {
+            text.enableWordWrapping = false;
+            text.overflowMode = TextOverflowModes.Overflow;
+
+            bool isInputText = text.GetComponentInParent<TMP_InputField>() != null;
+            text.fontSize = isInputText ? 24f : 32f;
+            text.alignment = isInputText ? TextAlignmentOptions.Center : TextAlignmentOptions.MidlineLeft;
+
+            var textRect = text.GetComponent<RectTransform>();
+            if (textRect != null) {
+                textRect.anchoredPosition = new Vector2(textRect.anchoredPosition.x, 0f);
+                textRect.sizeDelta = new Vector2(textRect.sizeDelta.x, 100f);
+            }
+        }
+
+        var inputRect = input.GetComponent<RectTransform>();
+        if (inputRect != null) {
+            inputRect.sizeDelta = new Vector2(240f, 56f);
+            inputRect.anchoredPosition = new Vector2(inputRect.anchoredPosition.x, 50f);
+        }
+
+        if (input.textViewport != null) {
+            input.textViewport.offsetMin = new Vector2(input.textViewport.offsetMin.x, 0f);
+            input.textViewport.offsetMax = new Vector2(input.textViewport.offsetMax.x, 0f);
+        }
+
+        if (input.textComponent != null) {
+            input.textComponent.alignment = TextAlignmentOptions.Center;
+            input.textComponent.fontSize = 24f;
+
+            var textRect = input.textComponent.GetComponent<RectTransform>();
+            if (textRect != null) {
+                textRect.offsetMin = new Vector2(textRect.offsetMin.x, 0f);
+                textRect.offsetMax = new Vector2(textRect.offsetMax.x, 0f);
+                textRect.anchoredPosition = new Vector2(textRect.anchoredPosition.x, 0f);
+            }
+        }
+    }
+
+    private static TextMeshProUGUI GetLabel(Transform row)
+    {
+        if (row == null) return null;
+
+        foreach (var text in row.GetComponentsInChildren<TextMeshProUGUI>(true)) {
+            if (text.GetComponentInParent<TMP_InputField>() != null) continue;
+            return text;
+        }
+
+        return null;
     }
 
     private static void FitButtonText(GameObject button, float fontSize)
