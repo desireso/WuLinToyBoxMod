@@ -205,6 +205,26 @@ internal class ToyBoxBehaviour : MonoBehaviour
         martialPanel.AddComponent<MartialPanel>();
 
         KoreanLocalizer.Localize(GUICanvas);
+
+        MuteToyBoxAudioSources();
+    }
+
+    private void MuteToyBoxAudioSources()
+    {
+        if (GUICanvas == null) return;
+
+        var audioSources = GUICanvas.GetComponentsInChildren<AudioSource>(true);
+        foreach (var audioSource in audioSources) {
+            if (audioSource == null) continue;
+
+            audioSource.Stop();
+            audioSource.playOnAwake = false;
+            audioSource.mute = true;
+            audioSource.volume = 0f;
+            audioSource.enabled = false;
+        }
+
+        ToyBox.LogMessage($"Muted {audioSources.Length} ToyBox UI AudioSource component(s).");
     }
 
 
