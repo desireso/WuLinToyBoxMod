@@ -27,14 +27,14 @@ internal class ToyBoxBehaviour : MonoBehaviour
     public GameObject GUICanvas { get; private set; }
 
     public ToyBoxBehaviour(IntPtr ptr) : base(ptr) { }
-    
+
     public static void Setup()
     {
         Instance = new GameObject("ToyBoxBehaviour").AddComponent<ToyBoxBehaviour>();
         DontDestroyOnLoad(Instance.gameObject);
         Instance.gameObject.hideFlags |= HideFlags.HideAndDontSave;
     }
-    
+
     private void Awake()
     {
         LoadAsset();
@@ -58,13 +58,15 @@ internal class ToyBoxBehaviour : MonoBehaviour
 
     private void SetBlock(bool block)
     {
-        if (GameTimer.HasInstance) {
+        if (GameTimer.HasInstance)
+        {
             if (block)
                 GameTimer.Instance.AddOrSetTimeScale(this, 0);
             else
                 GameTimer.Instance.RemoveTimeScale(this);
         }
-        if (InGameTimeManager.HasInstance) {
+        if (InGameTimeManager.HasInstance)
+        {
             if (block)
                 InGameTimeManager.RegisterTimeBlocker("HaxxToyBox");
             else
@@ -72,7 +74,7 @@ internal class ToyBoxBehaviour : MonoBehaviour
         }
     }
 
-    private void LoadAsset(bool fromFile=false)
+    private void LoadAsset(bool fromFile = false)
     {
         if (fromFile)
             LoadAssetFromFile();
@@ -82,21 +84,24 @@ internal class ToyBoxBehaviour : MonoBehaviour
 
     private void LoadAssetFromFile()
     {
-        if (!File.Exists(Paths.PluginPath + Constants.BundlePath)) {
+        if (!File.Exists(Paths.PluginPath + Constants.BundlePath))
+        {
             ToyBox.LogWarning("Skipping AssetBundle Loading - AssetBundle Doesn't Exist at: " + Paths.PluginPath + Constants.BundlePath);
             return;
         }
 
         ToyBox.LogMessage($"Trying to load {Constants.AssetName} from {Constants.BundlePath} ...");
         var guiAsset = AssetBundle.LoadFromFile(Paths.PluginPath + Constants.BundlePath);
-        if (guiAsset == null) {
+        if (guiAsset == null)
+        {
             ToyBox.LogMessage("AssetBundle Failed to Load!");
             return;
         }
 
         ToyBox.LogMessage("Trying to Load Prefab...");
         var guiPrefab = guiAsset.LoadAsset<GameObject>(Constants.AssetName);
-        if (guiPrefab != null) {
+        if (guiPrefab != null)
+        {
             ToyBox.LogMessage("Asset Loaded! Trying to Instantiate Prefab...");
             GUICanvas = Instantiate(guiPrefab);
             GUICanvas.name = "ToyBoxCanvas";
@@ -107,7 +112,8 @@ internal class ToyBoxBehaviour : MonoBehaviour
 
             _initialized = true;
         }
-        else {
+        else
+        {
             ToyBox.LogMessage("Failed to Load Asset!");
         }
     }
@@ -119,24 +125,36 @@ internal class ToyBoxBehaviour : MonoBehaviour
         var assembly = Assembly.GetExecutingAssembly();
         var resourceName = $"{assembly.GetName().Name}.{Constants.BundleRes}";
 
-        using (Stream stream = assembly.GetManifestResourceStream(resourceName)) {
-            if (stream == null) {
+        using (Stream stream = assembly.GetManifestResourceStream(resourceName))
+        {
+            if (stream == null)
+            {
                 ToyBox.LogWarning($"Asset bundle not found in embedded resources: {resourceName}");
                 return;
             }
 
             byte[] buffer = new byte[stream.Length];
-            stream.Read(buffer, 0, buffer.Length);
+            var offset = 0;
+            while (offset < buffer.Length)
+            {
+                int read = stream.Read(buffer, offset, buffer.Length - offset);
+                if (read == 0)
+                    throw new EndOfStreamException($"Could not read embedded asset bundle: {resourceName}");
+
+                offset += read;
+            }
 
             var guiAsset = AssetBundle.LoadFromMemory(buffer);
-            if (guiAsset == null) {
+            if (guiAsset == null)
+            {
                 ToyBox.LogMessage("AssetBundle Failed to Load from Memory!");
                 return;
             }
 
             ToyBox.LogMessage("Trying to Load Prefab...");
             var guiPrefab = guiAsset.LoadAsset<GameObject>(Constants.AssetName);
-            if (guiPrefab != null) {
+            if (guiPrefab != null)
+            {
                 ToyBox.LogMessage("Asset Loaded! Trying to Instantiate Prefab...");
                 GUICanvas = Instantiate(guiPrefab);
                 GUICanvas.name = "ToyBoxCanvas";
@@ -147,7 +165,8 @@ internal class ToyBoxBehaviour : MonoBehaviour
 
                 _initialized = true;
             }
-            else {
+            else
+            {
                 ToyBox.LogMessage("Failed to Load Asset!");
             }
         }
@@ -155,34 +174,40 @@ internal class ToyBoxBehaviour : MonoBehaviour
 
     private void SetupUI()
     {
-        if (GUICanvas == null) {
+        if (GUICanvas == null)
+        {
             ToyBox.LogError("ToyBox UI was not created because the AssetBundle could not be loaded.");
             return;
         }
 
         var buttonBot = GUICanvas.transform.Find("Buttons Bottom");
-        if (buttonBot == null) {
+        if (buttonBot == null)
+        {
             ToyBox.LogError("ToyBox UI is missing 'Buttons Bottom'. The AssetBundle may be incompatible with this mod version.");
             return;
         }
 
-        foreach (var child in buttonBot) {
+        foreach (var child in buttonBot)
+        {
             var button = child.Cast<Transform>().Find("Button").GetComponent<Button>();
             button.gameObject.AddComponent<FadeButtonWrapper>();
 
             var panelName = $"{child.Cast<Transform>().name}Panel";
             var panel = GUICanvas.transform.Find(panelName)?.gameObject;
-            if (panel != null) {
+            if (panel != null)
+            {
                 Panels.Add(panel);
-                button.onClick.AddListener(() => {
-                    for (int i = 0; i < Panels.Count; i++) {
+                button.onClick.AddListener(() =>
+                {
+                    for (int i = 0; i < Panels.Count; i++)
+                    {
                         Panels[i].SetActive(false);
                     }
                     panel.SetActive(true);
                 });
             }
         }
-        
+
         var rolePanel = GUICanvas.transform.Find("RolePanel").gameObject;
         rolePanel.AddComponent<RolePanel>();
 
@@ -191,7 +216,8 @@ internal class ToyBoxBehaviour : MonoBehaviour
 
         var addTraitButton = rolePanel.transform.Find("AddTrait").GetComponent<Button>();
         addTraitButton.gameObject.AddComponent<FadeButtonWrapper>();
-        addTraitButton.onClick.AddListener(() => {
+        addTraitButton.onClick.AddListener(() =>
+        {
             traitPanel.GetComponent<TraitPanel>().Show();
         });
 
@@ -205,6 +231,7 @@ internal class ToyBoxBehaviour : MonoBehaviour
         martialPanel.AddComponent<MartialPanel>();
 
         KoreanLocalizer.Localize(GUICanvas);
+        miscPanel.GetComponent<MiscPanel>().ApplyLabels();
 
         MuteToyBoxAudioSources();
     }
@@ -214,7 +241,8 @@ internal class ToyBoxBehaviour : MonoBehaviour
         if (GUICanvas == null) return;
 
         var audioSources = GUICanvas.GetComponentsInChildren<AudioSource>(true);
-        foreach (var audioSource in audioSources) {
+        foreach (var audioSource in audioSources)
+        {
             if (audioSource == null) continue;
 
             audioSource.Stop();
@@ -240,22 +268,26 @@ internal class ToyBoxBehaviour : MonoBehaviour
 
     public void Update()
     {
-        if (_initialized && InputManager.GetKeyDown(ConfigManager.Canvas_Toggle.Value)) {
+        if (_initialized && InputManager.GetKeyDown(ConfigManager.Canvas_Toggle.Value))
+        {
             if (GUICanvas.active)
                 HideCanvas();
-            else 
+            else
                 ShowCanvas();
         }
 
-        if (InputManager.GetKeyDown(ConfigManager.Recover_Toggle.Value)) {
+        if (InputManager.GetKeyDown(ConfigManager.Recover_Toggle.Value))
+        {
             MiscPanel.RecoverAll();
         }
 
-        if (InputManager.GetKeyDown(ConfigManager.SpeedUp_Toggle.Value)) {
+        if (InputManager.GetKeyDown(ConfigManager.SpeedUp_Toggle.Value))
+        {
             MiscPanel.SpeedUp();
         }
 
-        if (InputManager.GetKeyDown(ConfigManager.SpeedDown_Toggle.Value)) {
+        if (InputManager.GetKeyDown(ConfigManager.SpeedDown_Toggle.Value))
+        {
             MiscPanel.SpeedDown();
         }
 

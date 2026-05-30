@@ -69,7 +69,6 @@ internal static class KoreanLocalizer
         { "EnableAchievement", "도전 과제 허용" },
         { "UltimateMartial", "무공 완성" },
         { "SkillExp", "기술 EXP" },
-        { "KungfuBattleExp", "무공 EXP" },
         { "Gold", "돈" },
         { "WalkSpeed", "이동 속도" },
         { "BattleSpeed", "전투 속도" },

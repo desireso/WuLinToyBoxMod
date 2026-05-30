@@ -10,7 +10,7 @@ namespace HaxxToyBox.GUI;
 internal class MiscPanel : MonoBehaviour
 {
     public static MiscPanel Instance { get; private set; }
-    
+
     private Switch _timeFreezeSwitch;
     private Switch _recoverSwitch;
     private Switch _noCombatSwitch;
@@ -21,15 +21,8 @@ internal class MiscPanel : MonoBehaviour
     private Slider _battleSpeedSlider;
     private TMP_InputField _coinInput;
     private TMP_InputField _skillExpInput;
-    private TMP_InputField _kungfuBattleExpInput;
-
-    private InputKeyUGUI _toggleKeyUI;
-    private InputKeyUGUI _speedUpKeyUI;
-    private InputKeyUGUI _speedDownKeyUI;
-    private InputKeyUGUI _recoverKeyUI;
 
     public int ExpMultiple = 1;
-    public int KungfuBattleExpMultiple = 1;
     public int WalkSpeed = 1;
     public int BattleSpeed = 1;
 
@@ -58,13 +51,8 @@ internal class MiscPanel : MonoBehaviour
         BindSwitch(_relationSwitch, ConfigManager.RelationEnabled);
         BindSwitch(_enableAchieveSwitch, ConfigManager.EnableAchievement);
         BindSwitch(_ultimateMartialSwitch, ConfigManager.UltimateMartial);
-        FitSwitchColumn();
-        FitInputColumn();
 
         _skillExpInput = transform.Find("Content/InputFunc/SkillExp/NumInput").GetComponent<TMP_InputField>();
-        SetInputFuncLabel(_skillExpInput.transform.parent, "기술 EXP");
-        MoveInputRow(_skillExpInput.transform.parent.GetComponent<RectTransform>(), 1);
-        FitInputRow(_skillExpInput.transform.parent, _skillExpInput);
         ExpMultiple = Mathf.Clamp(ConfigManager.SkillExpMultiple.Value, 1, 1000);
         _skillExpInput.SetTextWithoutNotify(ExpMultiple.ToString());
         _skillExpInput.onValueChanged.RemoveAllListeners();
@@ -73,32 +61,25 @@ internal class MiscPanel : MonoBehaviour
         _skillExpInput.onEndEdit.AddListener(SetSkillExpMultiple);
 
         _coinInput = transform.Find("Content/InputFunc/Gold/NumInput").GetComponent<TMP_InputField>();
-        SetInputFuncLabel(_coinInput.transform.parent, "돈");
-        MoveInputRow(_coinInput.transform.parent.GetComponent<RectTransform>(), 0);
-        FitInputRow(_coinInput.transform.parent, _coinInput);
         _coinInput.onValueChanged.RemoveAllListeners();
-        _coinInput.onValueChanged.AddListener((string input) => {
+        _coinInput.onValueChanged.AddListener((string input) =>
+        {
             if (!long.TryParse(input, out long value))
                 _coinInput.text = _coinInput.m_OriginalText;
-            else {
+            else
+            {
                 var inventory = MonoSingleton<PlayerTeamManager>.Instance.TeamInventory;
                 inventory.SetCurrency(CurrencyType.Coin, value * 1000);
             }
         });
-
-        KungfuBattleExpMultiple = Mathf.Clamp(ConfigManager.KungfuExpMultiple.Value, 1, 1000);
-        _kungfuBattleExpInput = CreateKungfuBattleExpInput(_skillExpInput.transform.parent);
-        _kungfuBattleExpInput.onValueChanged.RemoveAllListeners();
-        _kungfuBattleExpInput.onEndEdit.RemoveAllListeners();
-        _kungfuBattleExpInput.onValueChanged.AddListener(SetKungfuBattleExpMultiple);
-        _kungfuBattleExpInput.onEndEdit.AddListener(SetKungfuBattleExpMultiple);
 
         var walkspeedSlider = transform.Find("Content/SliderFunc/WalkSpeed/Slider");
         walkspeedSlider.Find("Text").gameObject.AddComponent<SliderAmountText>();
         var walkSlider = walkspeedSlider.GetComponent<Slider>();
         WalkSpeed = Mathf.Clamp(ConfigManager.WalkSpeed.Value, (int)walkSlider.minValue, (int)walkSlider.maxValue);
         walkSlider.value = WalkSpeed;
-        walkSlider.onValueChanged.AddListener((float value) => {
+        walkSlider.onValueChanged.AddListener((float value) =>
+        {
             WalkSpeed = (int)value;
             SaveConfig(ConfigManager.WalkSpeed, WalkSpeed);
             //var player = RoamingManager.Instance?.player;
@@ -116,7 +97,8 @@ internal class MiscPanel : MonoBehaviour
         _battleSpeedSlider.transform.Find("Text").gameObject.AddComponent<SliderAmountText>();
         BattleSpeed = Mathf.Clamp(ConfigManager.BattleSpeed.Value, (int)_battleSpeedSlider.minValue, (int)_battleSpeedSlider.maxValue);
         _battleSpeedSlider.value = BattleSpeed;
-        _battleSpeedSlider.onValueChanged.AddListener((float value) => {
+        _battleSpeedSlider.onValueChanged.AddListener((float value) =>
+        {
             GameTimer.Instance.AddOrSetTimeScale(this, value);
             BattleSpeed = (int)value;
             SaveConfig(ConfigManager.BattleSpeed, BattleSpeed);
@@ -124,107 +106,63 @@ internal class MiscPanel : MonoBehaviour
 
         var buttonAchievements = transform.Find("Content/ButtonFunc/Achievement").gameObject;
         buttonAchievements.AddComponent<FadeButtonWrapper>();
-        FitButtonText(buttonAchievements, 22);
-        buttonAchievements.GetComponent<Button>().onClick.AddListener(() => {
+        buttonAchievements.GetComponent<Button>().onClick.AddListener(() =>
+        {
             var achievementDB = BaseDataClass.GetGameData<AchievementDataScriptObject>().data;
-            foreach (var id in achievementDB.Keys) {
+            foreach (var id in achievementDB.Keys)
+            {
                 MonoSingleton<AchievementManager>.Instance.Complate(id);
             }
         });
 
         var buttonRecover = transform.Find("Content/ButtonFunc/Recover").gameObject;
         buttonRecover.AddComponent<FadeButtonWrapper>();
-        FitButtonText(buttonRecover, 24);
         buttonRecover.GetComponent<Button>().onClick.AddListener(RecoverAll);
 
-        _toggleKeyUI = transform.Find("Content/ConfigFunc/PanelToggle").gameObject.AddComponent<InputKeyUGUI>();
-        _speedUpKeyUI = transform.Find("Content/ConfigFunc/SpeedupToggle").gameObject.AddComponent<InputKeyUGUI>();
-        _speedDownKeyUI = transform.Find("Content/ConfigFunc/SpeeddownToggle").gameObject.AddComponent<InputKeyUGUI>();
-        _recoverKeyUI = transform.Find("Content/ConfigFunc/Recover").gameObject.AddComponent<InputKeyUGUI>();
+        var toggleKeyUI = transform.Find("Content/ConfigFunc/PanelToggle").gameObject.AddComponent<InputKeyUGUI>();
+        var speedUpKeyUI = transform.Find("Content/ConfigFunc/SpeedupToggle").gameObject.AddComponent<InputKeyUGUI>();
+        var speedDownKeyUI = transform.Find("Content/ConfigFunc/SpeeddownToggle").gameObject.AddComponent<InputKeyUGUI>();
+        var recoverKeyUI = transform.Find("Content/ConfigFunc/Recover").gameObject.AddComponent<InputKeyUGUI>();
 
-        BindInputKey(_toggleKeyUI, ConfigManager.Canvas_Toggle);
-        BindInputKey(_speedUpKeyUI, ConfigManager.SpeedUp_Toggle);
-        BindInputKey(_speedDownKeyUI, ConfigManager.SpeedDown_Toggle);
-        BindInputKey(_recoverKeyUI, ConfigManager.Recover_Toggle);
+        BindInputKey(toggleKeyUI, ConfigManager.Canvas_Toggle);
+        BindInputKey(speedUpKeyUI, ConfigManager.SpeedUp_Toggle);
+        BindInputKey(speedDownKeyUI, ConfigManager.SpeedDown_Toggle);
+        BindInputKey(recoverKeyUI, ConfigManager.Recover_Toggle);
+
+        ApplyLabels();
     }
 
-    private TMP_InputField CreateKungfuBattleExpInput(Transform skillExpRow)
+    public void ApplyLabels()
     {
-        var parent = skillExpRow.parent;
-        var row = Instantiate(skillExpRow.gameObject, parent, false);
-        row.name = "KungfuBattleExp";
-        row.transform.SetSiblingIndex(skillExpRow.GetSiblingIndex() + 1);
-        SetInputFuncLabel(row.transform, "무공 EXP");
-        MoveInputRow(row.GetComponent<RectTransform>(), 2);
+        SetLabel("Content/SwitchFunc/TimeFreeze", "시간 일시정지");
+        SetLabel("Content/SwitchFunc/Recover", "전투 후 상태 회복");
+        SetLabel("Content/SwitchFunc/NoCombat", "인카운터 전투 미발생");
+        SetLabel("Content/SwitchFunc/Friendship", "선물 페이지 호감도 최대 버튼 추가");
+        SetLabel("Content/SwitchFunc/EnableAchievement", "모드 업적 해제 영향 없음");
+        SetLabel("Content/SwitchFunc/UltimateMartial", "무공 수량 무제한");
 
-        var input = row.transform.Find("NumInput").GetComponent<TMP_InputField>();
-        FitInputRow(row.transform, input);
-        input.SetTextWithoutNotify(KungfuBattleExpMultiple.ToString());
-        return input;
+        SetLabel("Content/SliderFunc/WalkSpeed", "이동 속도");
+        SetLabel("Content/SliderFunc/BattleSpeed", "전투 속도");
+
+        SetLabel("Content/InputFunc/Gold", "금전");
+        SetLabel("Content/InputFunc/SkillExp", "능력 경험치 배율");
+
+        SetLabel("Content/ButtonFunc/Achievement", "업적 해제");
+        SetLabel("Content/ButtonFunc/Recover", "상태 회복");
+
+        SetLabel("Content/ConfigFunc/PanelToggle", "패널 표시/숨기기");
+        SetLabel("Content/ConfigFunc/SpeedupToggle", "게임 속도 증가");
+        SetLabel("Content/ConfigFunc/SpeeddownToggle", "게임 속도 감소");
+        SetLabel("Content/ConfigFunc/Recover", "상태 회복");
     }
 
-    private static void MoveInputRow(RectTransform row, int index)
+    private void SetLabel(string path, string label)
     {
-        if (row == null) return;
+        var target = transform.Find(path);
+        if (target == null) return;
 
-        row.anchoredPosition = new Vector2(297.1f, -50f - index * 110f);
-        row.sizeDelta = new Vector2(row.sizeDelta.x, 100f);
-    }
-
-    private void FitSwitchColumn()
-    {
-        var group = transform.Find("Content/SwitchFunc")?.GetComponent<RectTransform>();
-        if (group != null) {
-            group.sizeDelta = new Vector2(590f, group.sizeDelta.y);
-        }
-
-        FitSwitchRow("TimeFreeze");
-        FitSwitchRow("Recover");
-        FitSwitchRow("NoCombat");
-        FitSwitchRow("Friendship");
-        FitSwitchRow("EnableAchievement");
-        FitSwitchRow("UltimateMartial");
-    }
-
-    private void FitSwitchRow(string rowName)
-    {
-        var row = transform.Find($"Content/SwitchFunc/{rowName}")?.GetComponent<RectTransform>();
-        if (row == null) return;
-
-        row.sizeDelta = new Vector2(590f, row.sizeDelta.y);
-
-        var label = GetLabel(row.transform);
-        var labelRect = label?.GetComponent<RectTransform>();
-        if (label != null) {
-            label.fontSize = 32f;
-            label.enableWordWrapping = false;
-            label.overflowMode = TextOverflowModes.Overflow;
-            label.alignment = TextAlignmentOptions.MidlineLeft;
-        }
-
-        if (labelRect != null) {
-            labelRect.sizeDelta = new Vector2(360f, labelRect.sizeDelta.y);
-            labelRect.anchoredPosition = new Vector2(180f, labelRect.anchoredPosition.y);
-        }
-
-        var switchRect = row.transform.Find("Switch")?.GetComponent<RectTransform>();
-        if (switchRect != null) {
-            switchRect.anchoredPosition = new Vector2(-205f, switchRect.anchoredPosition.y);
-        }
-    }
-
-    private void FitInputColumn()
-    {
-        var group = transform.Find("Content/InputFunc")?.GetComponent<RectTransform>();
-        if (group == null) return;
-
-        group.anchoredPosition = new Vector2(720f, 342f);
-        group.sizeDelta = new Vector2(590f, 300f);
-    }
-
-    private static void SetInputFuncLabel(Transform row, string label)
-    {
-        foreach (var text in row.GetComponentsInChildren<TextMeshProUGUI>(true)) {
+        foreach (var text in target.GetComponentsInChildren<TextMeshProUGUI>(true))
+        {
             if (text.GetComponentInParent<TMP_InputField>() != null) continue;
 
             text.text = label;
@@ -232,61 +170,6 @@ internal class MiscPanel : MonoBehaviour
             text.overflowMode = TextOverflowModes.Overflow;
             return;
         }
-    }
-
-    private static void FitInputRow(Transform row, TMP_InputField input)
-    {
-        if (row == null || input == null) return;
-
-        foreach (var text in row.GetComponentsInChildren<TextMeshProUGUI>(true)) {
-            text.enableWordWrapping = false;
-            text.overflowMode = TextOverflowModes.Overflow;
-
-            bool isInputText = text.GetComponentInParent<TMP_InputField>() != null;
-            text.fontSize = isInputText ? 24f : 32f;
-            text.alignment = isInputText ? TextAlignmentOptions.Center : TextAlignmentOptions.MidlineLeft;
-
-            var textRect = text.GetComponent<RectTransform>();
-            if (textRect != null) {
-                textRect.anchoredPosition = new Vector2(textRect.anchoredPosition.x, 0f);
-                textRect.sizeDelta = new Vector2(textRect.sizeDelta.x, 100f);
-            }
-        }
-
-        var inputRect = input.GetComponent<RectTransform>();
-        if (inputRect != null) {
-            inputRect.sizeDelta = new Vector2(240f, 56f);
-            inputRect.anchoredPosition = new Vector2(inputRect.anchoredPosition.x, 50f);
-        }
-
-        if (input.textViewport != null) {
-            input.textViewport.offsetMin = new Vector2(input.textViewport.offsetMin.x, 0f);
-            input.textViewport.offsetMax = new Vector2(input.textViewport.offsetMax.x, 0f);
-        }
-
-        if (input.textComponent != null) {
-            input.textComponent.alignment = TextAlignmentOptions.Center;
-            input.textComponent.fontSize = 24f;
-
-            var textRect = input.textComponent.GetComponent<RectTransform>();
-            if (textRect != null) {
-                textRect.offsetMin = new Vector2(textRect.offsetMin.x, 0f);
-                textRect.offsetMax = new Vector2(textRect.offsetMax.x, 0f);
-                textRect.anchoredPosition = new Vector2(textRect.anchoredPosition.x, 0f);
-            }
-        }
-    }
-
-    private static TextMeshProUGUI GetLabel(Transform row)
-    {
-        if (row == null) return null;
-
-        foreach (var text in row.GetComponentsInChildren<TextMeshProUGUI>(true)) {
-            if (text.GetComponentInParent<TMP_InputField>() != null) continue;
-            return text;
-        }
-
-        return null;
     }
 
     private static void BindSwitch(Switch toggleSwitch, ConfigEntry<bool> config)
@@ -297,37 +180,18 @@ internal class MiscPanel : MonoBehaviour
 
     private static void SaveConfig<T>(ConfigEntry<T> config, T value)
     {
-        if (!EqualityComparer<T>.Default.Equals(config.Value, value)) {
+        if (!EqualityComparer<T>.Default.Equals(config.Value, value))
+        {
             config.Value = value;
         }
 
         ConfigManager.Handler.SaveConfig();
     }
 
-    private static void FitButtonText(GameObject button, float fontSize)
-    {
-        var text = button.GetComponentInChildren<TextMeshProUGUI>(true);
-        if (text == null) return;
-
-        text.enableWordWrapping = false;
-        text.overflowMode = TextOverflowModes.Ellipsis;
-        text.fontSize = fontSize;
-    }
-
-    private void SetKungfuBattleExpMultiple(string input)
-    {
-        if (!int.TryParse(input, out var value)) {
-            value = 1;
-        }
-
-        KungfuBattleExpMultiple = Mathf.Clamp(value, 1, 1000);
-        _kungfuBattleExpInput.SetTextWithoutNotify(KungfuBattleExpMultiple.ToString());
-        SaveConfig(ConfigManager.KungfuExpMultiple, KungfuBattleExpMultiple);
-    }
-
     private void SetSkillExpMultiple(string input)
     {
-        if (!int.TryParse(input, out var value)) {
+        if (!int.TryParse(input, out var value))
+        {
             value = 1;
         }
 
@@ -336,17 +200,18 @@ internal class MiscPanel : MonoBehaviour
         SaveConfig(ConfigManager.SkillExpMultiple, ExpMultiple);
     }
 
-    private void BindInputKey(InputKeyUGUI obj, ConfigElement config)
+    private static void BindInputKey(InputKeyUGUI obj, ConfigElement config)
     {
         obj.Key = config.Value;
         obj.AllowAbortWithCancelButton = true;
-        obj.OnChanged += (KeyCode key, KeyCode modifierKey) => config.Value = key;
+        obj.OnChanged += (key, _) => config.Value = key;
     }
 
     private void OnEnable()
     {
         var inventory = PlayerTeamManager.Instance?.TeamInventory;
-        if (inventory != null) {
+        if (inventory != null)
+        {
             _coinInput.SetTextWithoutNotify((inventory.GetCurrency(CurrencyType.Coin) / 1000).ToString());
         }
 
@@ -359,7 +224,8 @@ internal class MiscPanel : MonoBehaviour
         if (teamManager == null) return;
         teamManager.ModifyProp("队伍体力", 100);
         teamManager.ModifyProp("队伍心情", 100);
-        for (int i = 0; i < teamManager.TeamSize; i++) {
+        for (int i = 0; i < teamManager.TeamSize; i++)
+        {
             teamManager.GetTeamMemberByIndex(i).FullyRecover();
         }
     }
@@ -368,7 +234,7 @@ internal class MiscPanel : MonoBehaviour
     {
         if (Instance == null) return;
         int min = (int)Instance._battleSpeedSlider.minValue;
-        Instance.BattleSpeed = Math.Max(Instance.BattleSpeed-1, min);
+        Instance.BattleSpeed = Math.Max(Instance.BattleSpeed - 1, min);
 
         GameTimer.Instance.AddOrSetTimeScale(Instance, Instance.BattleSpeed);
         Instance._battleSpeedSlider.SetValueWithoutNotify(Instance.BattleSpeed);
@@ -379,7 +245,7 @@ internal class MiscPanel : MonoBehaviour
     {
         if (Instance == null) return;
         int max = (int)Instance._battleSpeedSlider.maxValue;
-        Instance.BattleSpeed = Math.Min(Instance.BattleSpeed+1, max);
+        Instance.BattleSpeed = Math.Min(Instance.BattleSpeed + 1, max);
 
         GameTimer.Instance.AddOrSetTimeScale(Instance, Instance.BattleSpeed);
         Instance._battleSpeedSlider.SetValueWithoutNotify(Instance.BattleSpeed);

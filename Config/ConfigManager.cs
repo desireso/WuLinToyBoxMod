@@ -23,7 +23,6 @@ public static class ConfigManager
     public static ConfigEntry<bool> UltimateMartial;
 
     public static ConfigEntry<int> SkillExpMultiple;
-    public static ConfigEntry<int> KungfuExpMultiple;
     public static ConfigEntry<int> WalkSpeed;
     public static ConfigEntry<int> BattleSpeed;
 
@@ -80,9 +79,6 @@ public static class ConfigManager
 
         SkillExpMultiple = Handler.BindConfig("SkillExp Multiple",
             "Skill experience multiplier.",
-            1);
-        KungfuExpMultiple = Handler.BindConfig("KungfuExp Multiple",
-            "Kungfu experience multiplier.",
             1);
         WalkSpeed = Handler.BindConfig("WalkSpeed",
             "Walk speed multiplier.",
