@@ -19,8 +19,13 @@ internal class MiscPanel : MonoBehaviour
     private Switch _ultimateMartialSwitch;
 
     private Slider _battleSpeedSlider;
+    private Slider _walkSpeedSlider;
     private TMP_InputField _coinInput;
     private TMP_InputField _skillExpInput;
+    private InputKeyUGUI _toggleKeyUI;
+    private InputKeyUGUI _speedUpKeyUI;
+    private InputKeyUGUI _speedDownKeyUI;
+    private InputKeyUGUI _recoverKeyUI;
 
     public int ExpMultiple = 1;
     public int WalkSpeed = 1;
@@ -75,10 +80,10 @@ internal class MiscPanel : MonoBehaviour
 
         var walkspeedSlider = transform.Find("Content/SliderFunc/WalkSpeed/Slider");
         walkspeedSlider.Find("Text").gameObject.AddComponent<SliderAmountText>();
-        var walkSlider = walkspeedSlider.GetComponent<Slider>();
-        WalkSpeed = Mathf.Clamp(ConfigManager.WalkSpeed.Value, (int)walkSlider.minValue, (int)walkSlider.maxValue);
-        walkSlider.value = WalkSpeed;
-        walkSlider.onValueChanged.AddListener((float value) =>
+        _walkSpeedSlider = walkspeedSlider.GetComponent<Slider>();
+        WalkSpeed = Mathf.Clamp(ConfigManager.WalkSpeed.Value, (int)_walkSpeedSlider.minValue, (int)_walkSpeedSlider.maxValue);
+        _walkSpeedSlider.SetValueWithoutNotify(WalkSpeed);
+        _walkSpeedSlider.onValueChanged.AddListener((float value) =>
         {
             WalkSpeed = (int)value;
             SaveConfig(ConfigManager.WalkSpeed, WalkSpeed);
@@ -96,7 +101,7 @@ internal class MiscPanel : MonoBehaviour
         _battleSpeedSlider = transform.Find("Content/SliderFunc/BattleSpeed/Slider").GetComponent<Slider>();
         _battleSpeedSlider.transform.Find("Text").gameObject.AddComponent<SliderAmountText>();
         BattleSpeed = Mathf.Clamp(ConfigManager.BattleSpeed.Value, (int)_battleSpeedSlider.minValue, (int)_battleSpeedSlider.maxValue);
-        _battleSpeedSlider.value = BattleSpeed;
+        _battleSpeedSlider.SetValueWithoutNotify(BattleSpeed);
         _battleSpeedSlider.onValueChanged.AddListener((float value) =>
         {
             GameTimer.Instance.AddOrSetTimeScale(this, value);
@@ -119,15 +124,17 @@ internal class MiscPanel : MonoBehaviour
         buttonRecover.AddComponent<FadeButtonWrapper>();
         buttonRecover.GetComponent<Button>().onClick.AddListener(RecoverAll);
 
-        var toggleKeyUI = transform.Find("Content/ConfigFunc/PanelToggle").gameObject.AddComponent<InputKeyUGUI>();
-        var speedUpKeyUI = transform.Find("Content/ConfigFunc/SpeedupToggle").gameObject.AddComponent<InputKeyUGUI>();
-        var speedDownKeyUI = transform.Find("Content/ConfigFunc/SpeeddownToggle").gameObject.AddComponent<InputKeyUGUI>();
-        var recoverKeyUI = transform.Find("Content/ConfigFunc/Recover").gameObject.AddComponent<InputKeyUGUI>();
+        _toggleKeyUI = transform.Find("Content/ConfigFunc/PanelToggle").gameObject.AddComponent<InputKeyUGUI>();
+        _speedUpKeyUI = transform.Find("Content/ConfigFunc/SpeedupToggle").gameObject.AddComponent<InputKeyUGUI>();
+        _speedDownKeyUI = transform.Find("Content/ConfigFunc/SpeeddownToggle").gameObject.AddComponent<InputKeyUGUI>();
+        _recoverKeyUI = transform.Find("Content/ConfigFunc/Recover").gameObject.AddComponent<InputKeyUGUI>();
 
-        BindInputKey(toggleKeyUI, ConfigManager.Canvas_Toggle);
-        BindInputKey(speedUpKeyUI, ConfigManager.SpeedUp_Toggle);
-        BindInputKey(speedDownKeyUI, ConfigManager.SpeedDown_Toggle);
-        BindInputKey(recoverKeyUI, ConfigManager.Recover_Toggle);
+        BindInputKey(_toggleKeyUI, ConfigManager.Canvas_Toggle);
+        BindInputKey(_speedUpKeyUI, ConfigManager.SpeedUp_Toggle);
+        BindInputKey(_speedDownKeyUI, ConfigManager.SpeedDown_Toggle);
+        BindInputKey(_recoverKeyUI, ConfigManager.Recover_Toggle);
+
+        RefreshFromConfig(false);
 
         ApplyLabels();
     }
@@ -209,13 +216,54 @@ internal class MiscPanel : MonoBehaviour
 
     private void OnEnable()
     {
+        RefreshFromConfig(true);
+
         var inventory = PlayerTeamManager.Instance?.TeamInventory;
         if (inventory != null)
         {
             _coinInput.SetTextWithoutNotify((inventory.GetCurrency(CurrencyType.Coin) / 1000).ToString());
         }
+    }
 
-        _battleSpeedSlider.value = BattleSpeed;
+    private void RefreshFromConfig(bool reloadFile)
+    {
+        if (reloadFile) {
+            ConfigManager.Handler.ReloadConfig();
+        }
+
+        _timeFreezeSwitch?.SetToggled(ConfigManager.TimeFreezeEnabled.Value, false);
+        _recoverSwitch?.SetToggled(ConfigManager.RecoverEnabled.Value, false);
+        _noCombatSwitch?.SetToggled(ConfigManager.NoCombatEnabled.Value, false);
+        _relationSwitch?.SetToggled(ConfigManager.RelationEnabled.Value, false);
+        _enableAchieveSwitch?.SetToggled(ConfigManager.EnableAchievement.Value, false);
+        _ultimateMartialSwitch?.SetToggled(ConfigManager.UltimateMartial.Value, false);
+
+        ExpMultiple = Mathf.Clamp(ConfigManager.SkillExpMultiple.Value, 1, 1000);
+        _skillExpInput?.SetTextWithoutNotify(ExpMultiple.ToString());
+
+        if (_walkSpeedSlider != null) {
+            WalkSpeed = Mathf.Clamp(ConfigManager.WalkSpeed.Value, (int)_walkSpeedSlider.minValue, (int)_walkSpeedSlider.maxValue);
+            _walkSpeedSlider.SetValueWithoutNotify(WalkSpeed);
+        }
+
+        if (_battleSpeedSlider != null) {
+            BattleSpeed = Mathf.Clamp(ConfigManager.BattleSpeed.Value, (int)_battleSpeedSlider.minValue, (int)_battleSpeedSlider.maxValue);
+            _battleSpeedSlider.SetValueWithoutNotify(BattleSpeed);
+        }
+
+        RefreshInputKey(_toggleKeyUI, ConfigManager.Canvas_Toggle);
+        RefreshInputKey(_speedUpKeyUI, ConfigManager.SpeedUp_Toggle);
+        RefreshInputKey(_speedDownKeyUI, ConfigManager.SpeedDown_Toggle);
+        RefreshInputKey(_recoverKeyUI, ConfigManager.Recover_Toggle);
+    }
+
+    private static void RefreshInputKey(InputKeyUGUI obj, ConfigElement config)
+    {
+        if (obj == null || config == null) return;
+
+        obj.Key = config.Value;
+        obj.ModifierKey = KeyCode.None;
+        obj.Refresh();
     }
 
     public static void RecoverAll()

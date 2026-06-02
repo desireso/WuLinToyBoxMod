@@ -50,6 +50,12 @@ public class ConfigHandler
         }
     }
 
+    public void ReloadConfig()
+    {
+        Config.Reload();
+        LoadConfig();
+    }
+
     public void SaveConfig()
     {
         Config.Save();

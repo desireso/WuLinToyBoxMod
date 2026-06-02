@@ -100,15 +100,14 @@ public class GiftingRelationPatch
             var source = GameCharacterInstance.RelationModifySource.Gift;
             GiftingWithNpcManager.npc?.ModifyRelationWithPlayer(100, source);
         });
+        button.SetActive(MiscPanel.Instance && MiscPanel.Instance.RelationEnabled);
     }
     [HarmonyPrefix]
     [HarmonyPatch(typeof(GiftingWithNpcUI), "Update")]
     public static bool GiftingWithNpcUIUpdate_PrePatch(GiftingWithNpcUI __instance)
     {
-        if (!MiscPanel.Instance) return true;
-
         var button = __instance.transform.Find("IncRelation");
-        button?.gameObject.SetActive(MiscPanel.Instance.RelationEnabled);
+        button?.gameObject.SetActive(MiscPanel.Instance && MiscPanel.Instance.RelationEnabled);
         return true;
     }
 }
