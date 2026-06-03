@@ -4,6 +4,8 @@ using HaxxToyBox.Config;
 using HaxxToyBox.GUI;
 using WuLin;
 using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using BepInEx.Unity.IL2CPP.Utils.Collections;
 
 namespace HaxxToyBox.Patches;
@@ -274,5 +276,59 @@ public class FixedItemCountFactionBuyItemPatch
         FixedItemCountHelper.LogItemState(itemData, "FactionBuyItem before");
         FixedItemCountHelper.ApplyToItemId(itemData.Uid, "FactionBuyItem");
         FixedItemCountHelper.ApplyToItemIdNextFrame(itemData.Uid, "FactionBuyItem next-frame");
+    }
+}
+
+public class FixedItemCountGiftingPatch
+{
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(GiftingWithNpcManager), "ConfirmGifting", typeof(GameItemInstance))]
+    public static void ConfirmGifting_Postfix(GameItemInstance gameItemInstance)
+    {
+        if (gameItemInstance == null) return;
+
+        ToyBox.LogMessage($"[FixedItemCount] ConfirmGifting hit: ID={gameItemInstance.TempleteId}, Name={gameItemInstance.ItemName}, Count={gameItemInstance.Stack}");
+
+        FixedItemCountHelper.ApplyToItemId(gameItemInstance.TempleteId, "ConfirmGifting");
+        FixedItemCountHelper.ApplyToItemIdNextFrame(gameItemInstance.TempleteId, "ConfirmGifting next-frame");
+    }
+}
+
+public class FixedItemCountNpcTradingPatch
+{
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(TradingWithNpcManager), "ConfirmTrading")]
+    public static void ConfirmTrading_Prefix(ref List<int> __state)
+    {
+        __state = new List<int>();
+        AddPackItemIds(__state, TradingWithNpcManager.playerTradingZone);
+        AddPackItemIds(__state, TradingWithNpcManager.npcTradingZone);
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(TradingWithNpcManager), "ConfirmTrading")]
+    public static void ConfirmTrading_Postfix(List<int> __state)
+    {
+        if (__state == null || __state.Count == 0) return;
+
+        foreach (int itemId in __state.Distinct())
+        {
+            ToyBox.LogMessage($"[FixedItemCount] ConfirmTrading hit: ID={itemId}");
+            FixedItemCountHelper.ApplyToItemId(itemId, "ConfirmTrading");
+            FixedItemCountHelper.ApplyToItemIdNextFrame(itemId, "ConfirmTrading next-frame");
+        }
+    }
+
+    private static void AddPackItemIds(List<int> itemIds, GameItemPack pack)
+    {
+        if (itemIds == null || pack == null) return;
+
+        foreach (var item in pack.Contents)
+        {
+            if (item != null)
+            {
+                itemIds.Add(item.TempleteId);
+            }
+        }
     }
 }
