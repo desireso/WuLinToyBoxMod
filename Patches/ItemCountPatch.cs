@@ -67,9 +67,9 @@ internal static class FixedItemCountHelper
 
     public static void ApplyToItemIdNextFrame(int itemId, string source)
     {
-        if (MiscPanel.Instance == null) return;
+        if (ToyBoxBehaviour.Instance == null) return;
 
-        MiscPanel.Instance.StartCoroutine(ApplyNextFrame(itemId, source).WrapToIl2Cpp());
+        ToyBoxBehaviour.Instance.StartCoroutine(ApplyNextFrame(itemId, source).WrapToIl2Cpp());
     }
 
     public static void LogItemState(ItemData itemData, string source)

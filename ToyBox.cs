@@ -54,6 +54,7 @@ public class ToyBox : BasePlugin
             typeof(NoCombatPerceptionPatch),
             typeof(NoCombatFoundPatch),
             typeof(SkillExpPatch),
+            typeof(KungfuExpPatch),
             typeof(GiftingRelationPatch),
             typeof(WalkSpeedPatch),
             typeof(AchievementHistoryPatch),

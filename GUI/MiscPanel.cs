@@ -22,6 +22,7 @@ internal class MiscPanel : MonoBehaviour
     private Slider _walkSpeedSlider;
     private TMP_InputField _coinInput;
     private TMP_InputField _skillExpInput;
+    private TMP_InputField _kungfuExpInput;
     private TMP_InputField _fixedItemCountInput;
     private InputKeyUGUI _toggleKeyUI;
     private InputKeyUGUI _speedUpKeyUI;
@@ -29,6 +30,7 @@ internal class MiscPanel : MonoBehaviour
     private InputKeyUGUI _recoverKeyUI;
 
     public int ExpMultiple = 1;
+    public int KungfuExpMultiple = 1;
     public int WalkSpeed = 1;
     public int BattleSpeed = 1;
     public int FixedItemCount = 1;
@@ -46,7 +48,7 @@ internal class MiscPanel : MonoBehaviour
     {
         Instance = this;
 
-        EnsureFixedItemCountControls();
+        EnsureExtraInputControls();
 
         _timeFreezeSwitch = transform.Find("Content/SwitchFunc/TimeFreeze/Switch").gameObject.AddComponent<Switch>();
         _recoverSwitch = transform.Find("Content/SwitchFunc/Recover/Switch").gameObject.AddComponent<Switch>();
@@ -68,6 +70,14 @@ internal class MiscPanel : MonoBehaviour
         _skillExpInput.onEndEdit.RemoveAllListeners();
         _skillExpInput.onValueChanged.AddListener(SetSkillExpMultiple);
         _skillExpInput.onEndEdit.AddListener(SetSkillExpMultiple);
+
+        _kungfuExpInput = transform.Find("Content/InputFunc/KungfuExp/NumInput").GetComponent<TMP_InputField>();
+        KungfuExpMultiple = Mathf.Clamp(ConfigManager.KungfuExpMultiple.Value, 1, 1000);
+        _kungfuExpInput.SetTextWithoutNotify(KungfuExpMultiple.ToString());
+        _kungfuExpInput.onValueChanged.RemoveAllListeners();
+        _kungfuExpInput.onEndEdit.RemoveAllListeners();
+        _kungfuExpInput.onValueChanged.AddListener(SetKungfuExpMultiple);
+        _kungfuExpInput.onEndEdit.AddListener(SetKungfuExpMultiple);
 
         _fixedItemCountInput = transform.Find("Content/InputFunc/FixedItemCount/NumInput").GetComponent<TMP_InputField>();
         FixedItemCount = Mathf.Clamp(ConfigManager.FixedItemCount.Value, 0, 9999);
@@ -167,6 +177,7 @@ internal class MiscPanel : MonoBehaviour
 
         SetLabel("Content/SwitchFunc/UltimateMartial/LowerLeftPanel/Gold", "금전");
         SetLabel("Content/SwitchFunc/UltimateMartial/LowerLeftPanel/SkillExp", "능력 경험치 배율");
+        SetLabel("Content/SwitchFunc/UltimateMartial/LowerLeftPanel/KungfuExp", "무공 경험치 배율");
         SetLabel("Content/SwitchFunc/UltimateMartial/LowerLeftPanel/FixedItemCount", "아이템 개수 고정");
 
         SetLabel("Content/SwitchFunc/UltimateMartial/LowerRightPanel/ActionAchievement", "업적 해제");
@@ -210,15 +221,26 @@ internal class MiscPanel : MonoBehaviour
         ConfigManager.Handler.SaveConfig();
     }
 
-    private void EnsureFixedItemCountControls()
+    private void EnsureExtraInputControls()
     {
         var inputParent = transform.Find("Content/InputFunc");
         var skillExpRow = inputParent?.Find("SkillExp");
-        if (inputParent != null && skillExpRow != null && inputParent.Find("FixedItemCount") == null)
+        if (inputParent == null || skillExpRow == null) return;
+
+        var kungfuExpRow = inputParent.Find("KungfuExp");
+        if (kungfuExpRow == null)
+        {
+            var row = UnityEngine.Object.Instantiate(skillExpRow.gameObject, inputParent);
+            row.name = "KungfuExp";
+            row.transform.SetSiblingIndex(skillExpRow.GetSiblingIndex() + 1);
+            kungfuExpRow = row.transform;
+        }
+
+        if (inputParent.Find("FixedItemCount") == null)
         {
             var row = UnityEngine.Object.Instantiate(skillExpRow.gameObject, inputParent);
             row.name = "FixedItemCount";
-            row.transform.SetSiblingIndex(skillExpRow.GetSiblingIndex() + 1);
+            row.transform.SetSiblingIndex(kungfuExpRow.GetSiblingIndex() + 1);
         }
     }
 
@@ -233,12 +255,13 @@ internal class MiscPanel : MonoBehaviour
         var ultimateMartialRow = FindRect("Content/SwitchFunc/UltimateMartial");
         var goldRow = FindRect("Content/InputFunc/Gold");
         var skillExpRow = FindRect("Content/InputFunc/SkillExp");
+        var kungfuExpRow = FindRect("Content/InputFunc/KungfuExp");
         var fixedRow = FindRect("Content/InputFunc/FixedItemCount");
-        if (ultimateMartialRow == null || goldRow == null || skillExpRow == null || fixedRow == null) return;
+        if (ultimateMartialRow == null || goldRow == null || skillExpRow == null || kungfuExpRow == null || fixedRow == null) return;
 
         var leftPanel = EnsurePanel(ultimateMartialRow, "LowerLeftPanel");
         var rightPanel = EnsurePanel(ultimateMartialRow, "LowerRightPanel");
-        ConfigurePanel(leftPanel, new Vector2(0, -82), new Vector2(650, 300), new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(0, 1));
+        ConfigurePanel(leftPanel, new Vector2(0, -82), new Vector2(650, 382), new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(0, 1));
         ConfigurePanel(rightPanel, new Vector2(665, -82), new Vector2(520, 140), new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(0, 1));
 
         goldRow.SetParent(leftPanel, false);
@@ -253,10 +276,16 @@ internal class MiscPanel : MonoBehaviour
         PlacePanelRow(skillExpRow, 82);
         ArrangeInputRow(skillExpRow, "능력 경험치 배율", new Vector2(0, 0), new Vector2(470, 0), new Vector2(180, 64));
 
+        kungfuExpRow.SetParent(leftPanel, false);
+        kungfuExpRow.name = "KungfuExp";
+        kungfuExpRow.SetSiblingIndex(skillExpRow.GetSiblingIndex() + 1);
+        PlacePanelRow(kungfuExpRow, 164);
+        ArrangeInputRow(kungfuExpRow, "무공 경험치 배율", new Vector2(0, 0), new Vector2(470, 0), new Vector2(180, 64));
+
         fixedRow.SetParent(leftPanel, false);
         fixedRow.name = "FixedItemCount";
-        fixedRow.SetSiblingIndex(skillExpRow.GetSiblingIndex() + 1);
-        PlacePanelRow(fixedRow, 164);
+        fixedRow.SetSiblingIndex(kungfuExpRow.GetSiblingIndex() + 1);
+        PlacePanelRow(fixedRow, 246);
         ArrangeInputRow(fixedRow, "아이템 개수 고정", new Vector2(0, 0), new Vector2(470, 0), new Vector2(180, 64));
     }
 
@@ -391,6 +420,18 @@ internal class MiscPanel : MonoBehaviour
         SaveConfig(ConfigManager.SkillExpMultiple, ExpMultiple);
     }
 
+    private void SetKungfuExpMultiple(string input)
+    {
+        if (!int.TryParse(input, out var value))
+        {
+            value = 1;
+        }
+
+        KungfuExpMultiple = Mathf.Clamp(value, 1, 1000);
+        _kungfuExpInput.SetTextWithoutNotify(KungfuExpMultiple.ToString());
+        SaveConfig(ConfigManager.KungfuExpMultiple, KungfuExpMultiple);
+    }
+
     private void SetFixedItemCount(string input)
     {
         if (!int.TryParse(input, out var value))
@@ -435,6 +476,8 @@ internal class MiscPanel : MonoBehaviour
         _ultimateMartialSwitch?.SetToggled(ConfigManager.UltimateMartial.Value, false);
         ExpMultiple = Mathf.Clamp(ConfigManager.SkillExpMultiple.Value, 1, 1000);
         _skillExpInput?.SetTextWithoutNotify(ExpMultiple.ToString());
+        KungfuExpMultiple = Mathf.Clamp(ConfigManager.KungfuExpMultiple.Value, 1, 1000);
+        _kungfuExpInput?.SetTextWithoutNotify(KungfuExpMultiple.ToString());
         FixedItemCount = Mathf.Clamp(ConfigManager.FixedItemCount.Value, 0, 9999);
         _fixedItemCountInput?.SetTextWithoutNotify(FixedItemCount.ToString());
 

@@ -81,6 +81,22 @@ public class SkillExpPatch
     }
 }
 
+public class KungfuExpPatch
+{
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(KungfuInstance), "AddExp")]
+    public static void AddExp_PrePatch(ref int amount)
+    {
+        if (!MiscPanel.Instance || amount <= 0) return;
+
+        var multiplier = Mathf.Clamp(MiscPanel.Instance.KungfuExpMultiple, 1, 1000);
+        if (multiplier <= 1) return;
+
+        var multiplied = (long)amount * multiplier;
+        amount = multiplied > int.MaxValue ? int.MaxValue : (int)multiplied;
+    }
+}
+
 public class GiftingRelationPatch
 {
     [HarmonyPostfix]
