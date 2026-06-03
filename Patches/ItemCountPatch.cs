@@ -116,6 +116,19 @@ internal static class FixedItemCountHelper
         }
     }
 
+    public static void ApplyChangedInventoryItem(GameItemInstance item, string source)
+    {
+        if (!IsEnabled() || _isApplying || item == null) return;
+
+        var inventory = PlayerTeamManager.Instance?.TeamInventory;
+        if (inventory == null) return;
+
+        var inventoryItem = inventory.GetItem(item.TempleteId);
+        if (inventoryItem == null) return;
+
+        ApplyToItem(inventory, inventoryItem, source);
+    }
+
     private static bool IsEnabled()
     {
         return GetTargetCount() > 0;
@@ -135,6 +148,42 @@ internal static class FixedItemCountHelper
     private static bool CanApply(GameItemInstance item)
     {
         return item != null && item.IsStackable && CanApply(item.Templete);
+    }
+
+    public static bool IsAppraisalItem(GameItemInstance item)
+    {
+        try
+        {
+            return item != null && (item.GetItemType() & ItemType.Consumeable_Special) != 0;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static string SafeItemName(GameItemInstance item)
+    {
+        try
+        {
+            return item?.ItemName ?? "n/a";
+        }
+        catch
+        {
+            return "name-error";
+        }
+    }
+
+    private static string SafeItemName(ItemData itemData)
+    {
+        try
+        {
+            return itemData?.GetName(true) ?? "n/a";
+        }
+        catch
+        {
+            return "name-error";
+        }
     }
 
     private static bool CanApply(ItemData itemData)
@@ -158,6 +207,25 @@ internal static class FixedItemCountHelper
         }
 
         return null;
+    }
+}
+
+public class FixedItemCountAppraisalPatch
+{
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(UIItem), "ChestClick")]
+    public static void ChestClick_Prefix(GameItemInstance Data, ref int __state)
+    {
+        __state = FixedItemCountHelper.IsAppraisalItem(Data) ? Data.TempleteId : 0;
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(UIItem), "ChestClick")]
+    public static void ChestClick_Postfix(int __state)
+    {
+        if (__state == 0) return;
+
+        FixedItemCountHelper.ApplyToItemId(__state, "Appraisal");
     }
 }
 
@@ -259,6 +327,19 @@ public class FixedItemCountUseOnBattleActorPatch
         {
             FixedItemCountHelper.ApplyToItemId(gameItemInstance.TempleteId, "UseItemOnBattleActor");
         }
+    }
+}
+
+public class FixedItemCountChangeStackPatch
+{
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(GameItemInstance), "ChangeStack")]
+    public static void ChangeStack_Postfix(GameItemInstance __instance, bool __result)
+    {
+        if (!__result || __instance == null) return;
+
+        ToyBox.LogMessage($"[FixedItemCount] ChangeStack hit: ID={__instance.TempleteId}, Name={__instance.ItemName}, Count={__instance.Stack}");
+        FixedItemCountHelper.ApplyChangedInventoryItem(__instance, "ChangeStack");
     }
 }
 

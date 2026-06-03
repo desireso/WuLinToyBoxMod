@@ -65,9 +65,11 @@ public class ToyBox : BasePlugin
             typeof(FixedItemCountTakePatch),
             typeof(FixedItemCountUseOnCharacterPatch),
             typeof(FixedItemCountUseOnBattleActorPatch),
+            typeof(FixedItemCountChangeStackPatch),
             typeof(FixedItemCountFactionBuyItemPatch),
             typeof(FixedItemCountGiftingPatch),
-            typeof(FixedItemCountNpcTradingPatch)
+            typeof(FixedItemCountNpcTradingPatch),
+            typeof(FixedItemCountAppraisalPatch)
         );
     }
 
