@@ -21,10 +21,12 @@ public static class ConfigManager
     public static ConfigEntry<bool> RelationEnabled;
     public static ConfigEntry<bool> EnableAchievement;
     public static ConfigEntry<bool> UltimateMartial;
+    public static ConfigEntry<bool> FixedItemCountEnabled;
 
     public static ConfigEntry<int> SkillExpMultiple;
     public static ConfigEntry<int> WalkSpeed;
     public static ConfigEntry<int> BattleSpeed;
+    public static ConfigEntry<int> FixedItemCount;
 
     public static void Init(ConfigHandler configHandler)
     {
@@ -76,6 +78,9 @@ public static class ConfigManager
         UltimateMartial = Handler.BindConfig("UltimateMartial Enabled",
             "Whether instant ultimate martial learning is enabled.",
             false);
+        FixedItemCountEnabled = Handler.BindConfig("FixedItemCount Enabled",
+            "Whether item stack counts are fixed after items are added or used.",
+            false);
 
         SkillExpMultiple = Handler.BindConfig("SkillExp Multiple",
             "Skill experience multiplier.",
@@ -86,5 +91,8 @@ public static class ConfigManager
         BattleSpeed = Handler.BindConfig("BattleSpeed",
             "Battle speed multiplier.",
             1);
+        FixedItemCount = Handler.BindConfig("FixedItemCount",
+            "Target stack count for fixed item count.",
+            0);
     }
 }

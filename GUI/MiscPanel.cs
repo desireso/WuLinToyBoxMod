@@ -22,6 +22,7 @@ internal class MiscPanel : MonoBehaviour
     private Slider _walkSpeedSlider;
     private TMP_InputField _coinInput;
     private TMP_InputField _skillExpInput;
+    private TMP_InputField _fixedItemCountInput;
     private InputKeyUGUI _toggleKeyUI;
     private InputKeyUGUI _speedUpKeyUI;
     private InputKeyUGUI _speedDownKeyUI;
@@ -30,6 +31,7 @@ internal class MiscPanel : MonoBehaviour
     public int ExpMultiple = 1;
     public int WalkSpeed = 1;
     public int BattleSpeed = 1;
+    public int FixedItemCount = 1;
 
     public bool TimeFreezed => _timeFreezeSwitch.IsToggled();
     public bool RecoverEnabled => _recoverSwitch.IsToggled();
@@ -43,6 +45,8 @@ internal class MiscPanel : MonoBehaviour
     private void Awake()
     {
         Instance = this;
+
+        EnsureFixedItemCountControls();
 
         _timeFreezeSwitch = transform.Find("Content/SwitchFunc/TimeFreeze/Switch").gameObject.AddComponent<Switch>();
         _recoverSwitch = transform.Find("Content/SwitchFunc/Recover/Switch").gameObject.AddComponent<Switch>();
@@ -64,6 +68,14 @@ internal class MiscPanel : MonoBehaviour
         _skillExpInput.onEndEdit.RemoveAllListeners();
         _skillExpInput.onValueChanged.AddListener(SetSkillExpMultiple);
         _skillExpInput.onEndEdit.AddListener(SetSkillExpMultiple);
+
+        _fixedItemCountInput = transform.Find("Content/InputFunc/FixedItemCount/NumInput").GetComponent<TMP_InputField>();
+        FixedItemCount = Mathf.Clamp(ConfigManager.FixedItemCount.Value, 0, 9999);
+        _fixedItemCountInput.SetTextWithoutNotify(FixedItemCount.ToString());
+        _fixedItemCountInput.onValueChanged.RemoveAllListeners();
+        _fixedItemCountInput.onEndEdit.RemoveAllListeners();
+        _fixedItemCountInput.onValueChanged.AddListener(SetFixedItemCount);
+        _fixedItemCountInput.onEndEdit.AddListener(SetFixedItemCount);
 
         _coinInput = transform.Find("Content/InputFunc/Gold/NumInput").GetComponent<TMP_InputField>();
         _coinInput.onValueChanged.RemoveAllListeners();
@@ -124,6 +136,8 @@ internal class MiscPanel : MonoBehaviour
         buttonRecover.AddComponent<FadeButtonWrapper>();
         buttonRecover.GetComponent<Button>().onClick.AddListener(RecoverAll);
 
+        ArrangeMiscPanelLayout();
+
         _toggleKeyUI = transform.Find("Content/ConfigFunc/PanelToggle").gameObject.AddComponent<InputKeyUGUI>();
         _speedUpKeyUI = transform.Find("Content/ConfigFunc/SpeedupToggle").gameObject.AddComponent<InputKeyUGUI>();
         _speedDownKeyUI = transform.Find("Content/ConfigFunc/SpeeddownToggle").gameObject.AddComponent<InputKeyUGUI>();
@@ -151,11 +165,12 @@ internal class MiscPanel : MonoBehaviour
         SetLabel("Content/SliderFunc/WalkSpeed", "이동 속도");
         SetLabel("Content/SliderFunc/BattleSpeed", "전투 속도");
 
-        SetLabel("Content/InputFunc/Gold", "금전");
-        SetLabel("Content/InputFunc/SkillExp", "능력 경험치 배율");
+        SetLabel("Content/SwitchFunc/UltimateMartial/LowerLeftPanel/Gold", "금전");
+        SetLabel("Content/SwitchFunc/UltimateMartial/LowerLeftPanel/SkillExp", "능력 경험치 배율");
+        SetLabel("Content/SwitchFunc/UltimateMartial/LowerLeftPanel/FixedItemCount", "아이템 개수 고정");
 
-        SetLabel("Content/ButtonFunc/Achievement", "업적 해제");
-        SetLabel("Content/ButtonFunc/Recover", "상태 회복");
+        SetLabel("Content/SwitchFunc/UltimateMartial/LowerRightPanel/ActionAchievement", "업적 해제");
+        SetLabel("Content/SwitchFunc/UltimateMartial/LowerRightPanel/ActionRecover", "상태 회복");
 
         SetLabel("Content/ConfigFunc/PanelToggle", "패널 표시/숨기기");
         SetLabel("Content/ConfigFunc/SpeedupToggle", "게임 속도 증가");
@@ -195,6 +210,175 @@ internal class MiscPanel : MonoBehaviour
         ConfigManager.Handler.SaveConfig();
     }
 
+    private void EnsureFixedItemCountControls()
+    {
+        var inputParent = transform.Find("Content/InputFunc");
+        var skillExpRow = inputParent?.Find("SkillExp");
+        if (inputParent != null && skillExpRow != null && inputParent.Find("FixedItemCount") == null)
+        {
+            var row = UnityEngine.Object.Instantiate(skillExpRow.gameObject, inputParent);
+            row.name = "FixedItemCount";
+            row.transform.SetSiblingIndex(skillExpRow.GetSiblingIndex() + 1);
+        }
+    }
+
+    private void ArrangeMiscPanelLayout()
+    {
+        ArrangeInputRows();
+        ArrangeActionButtons();
+    }
+
+    private void ArrangeInputRows()
+    {
+        var ultimateMartialRow = FindRect("Content/SwitchFunc/UltimateMartial");
+        var goldRow = FindRect("Content/InputFunc/Gold");
+        var skillExpRow = FindRect("Content/InputFunc/SkillExp");
+        var fixedRow = FindRect("Content/InputFunc/FixedItemCount");
+        if (ultimateMartialRow == null || goldRow == null || skillExpRow == null || fixedRow == null) return;
+
+        var leftPanel = EnsurePanel(ultimateMartialRow, "LowerLeftPanel");
+        var rightPanel = EnsurePanel(ultimateMartialRow, "LowerRightPanel");
+        ConfigurePanel(leftPanel, new Vector2(0, -82), new Vector2(650, 300), new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(0, 1));
+        ConfigurePanel(rightPanel, new Vector2(665, -82), new Vector2(520, 140), new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(0, 1));
+
+        goldRow.SetParent(leftPanel, false);
+        goldRow.name = "Gold";
+        goldRow.SetSiblingIndex(0);
+        PlacePanelRow(goldRow, 0);
+        ArrangeInputRow(goldRow, "금전", new Vector2(0, 0), new Vector2(470, 0), new Vector2(180, 64));
+
+        skillExpRow.SetParent(leftPanel, false);
+        skillExpRow.name = "SkillExp";
+        skillExpRow.SetSiblingIndex(goldRow.GetSiblingIndex() + 1);
+        PlacePanelRow(skillExpRow, 82);
+        ArrangeInputRow(skillExpRow, "능력 경험치 배율", new Vector2(0, 0), new Vector2(470, 0), new Vector2(180, 64));
+
+        fixedRow.SetParent(leftPanel, false);
+        fixedRow.name = "FixedItemCount";
+        fixedRow.SetSiblingIndex(skillExpRow.GetSiblingIndex() + 1);
+        PlacePanelRow(fixedRow, 164);
+        ArrangeInputRow(fixedRow, "아이템 개수 고정", new Vector2(0, 0), new Vector2(470, 0), new Vector2(180, 64));
+    }
+
+    private void ArrangeInputRow(RectTransform row, string label, Vector2 labelPosition, Vector2 inputPosition, Vector2 inputSize)
+    {
+        row.sizeDelta = new Vector2(650, row.sizeDelta.y);
+
+        var rowLabel = FirstLabel(row);
+        if (rowLabel != null)
+        {
+            rowLabel.text = label;
+            rowLabel.enableWordWrapping = false;
+            rowLabel.overflowMode = TextOverflowModes.Overflow;
+            rowLabel.alignment = TextAlignmentOptions.Left;
+            PlaceRowLabel(rowLabel.GetComponent<RectTransform>(), labelPosition, new Vector2(360, 64));
+        }
+
+        var input = FindChildRect(row, "NumInput");
+        PlaceRowInput(input, inputPosition, inputSize);
+    }
+
+    private void ArrangeActionButtons()
+    {
+        var rightPanel = FindRect("Content/SwitchFunc/UltimateMartial/LowerRightPanel");
+        var achievementButton = FindRect("Content/ButtonFunc/Achievement");
+        var recoverButton = FindRect("Content/ButtonFunc/Recover");
+        if (rightPanel == null || achievementButton == null || recoverButton == null) return;
+
+        MoveButtonToPanel(achievementButton, rightPanel, "ActionAchievement", new Vector2(125, 20));
+        MoveButtonToPanel(recoverButton, rightPanel, "ActionRecover", new Vector2(375, 20));
+    }
+
+    private RectTransform FindRect(string path)
+    {
+        return transform.Find(path)?.GetComponent<RectTransform>();
+    }
+
+    private static RectTransform FindChildRect(Transform parent, string path)
+    {
+        return parent?.Find(path)?.GetComponent<RectTransform>();
+    }
+
+    private static RectTransform EnsurePanel(Transform parent, string name)
+    {
+        var existing = parent.Find(name)?.GetComponent<RectTransform>();
+        if (existing != null) return existing;
+
+        var panel = new GameObject(name);
+        panel.transform.SetParent(parent, false);
+        return panel.AddComponent<RectTransform>();
+    }
+
+    private static void ConfigurePanel(RectTransform panel, Vector2 anchoredPosition, Vector2 size, Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot)
+    {
+        panel.anchorMin = anchorMin;
+        panel.anchorMax = anchorMax;
+        panel.pivot = pivot;
+        panel.anchoredPosition = anchoredPosition;
+        panel.sizeDelta = size;
+        panel.localScale = Vector3.one;
+    }
+
+    private static void PlacePanelRow(RectTransform row, float y)
+    {
+        row.anchorMin = new Vector2(0, 1);
+        row.anchorMax = new Vector2(0, 1);
+        row.pivot = new Vector2(0, 0.5f);
+        row.anchoredPosition = new Vector2(0, -50 - y);
+        row.sizeDelta = new Vector2(650, 100);
+        row.localScale = Vector3.one;
+    }
+
+    private static void MoveButtonToPanel(RectTransform button, Transform parent, string name, Vector2 anchoredPosition)
+    {
+        button.SetParent(parent, false);
+        button.name = name;
+        button.anchorMin = new Vector2(0, 0.5f);
+        button.anchorMax = new Vector2(0, 0.5f);
+        button.pivot = new Vector2(0.5f, 0.5f);
+        button.anchoredPosition = anchoredPosition;
+        button.sizeDelta = new Vector2(220, 54);
+        button.localScale = Vector3.one;
+    }
+
+    private static void PlaceRowLabel(RectTransform rect, Vector2 anchoredPosition, Vector2 size)
+    {
+        if (rect == null) return;
+
+        rect.anchorMin = new Vector2(0, 0.5f);
+        rect.anchorMax = new Vector2(0, 0.5f);
+        rect.pivot = new Vector2(0, 0.5f);
+        rect.anchoredPosition = anchoredPosition;
+        rect.sizeDelta = size;
+        rect.localScale = Vector3.one;
+    }
+
+    private static void PlaceRowInput(RectTransform rect, Vector2 anchoredPosition, Vector2 size)
+    {
+        if (rect == null) return;
+
+        rect.anchorMin = new Vector2(0, 0.5f);
+        rect.anchorMax = new Vector2(0, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = anchoredPosition;
+        rect.sizeDelta = size;
+        rect.localScale = Vector3.one;
+    }
+
+    private static TextMeshProUGUI FirstLabel(Transform target)
+    {
+        if (target == null) return null;
+
+        foreach (var text in target.GetComponentsInChildren<TextMeshProUGUI>(true))
+        {
+            if (text.GetComponentInParent<TMP_InputField>() != null) continue;
+
+            return text;
+        }
+
+        return null;
+    }
+
     private void SetSkillExpMultiple(string input)
     {
         if (!int.TryParse(input, out var value))
@@ -205,6 +389,18 @@ internal class MiscPanel : MonoBehaviour
         ExpMultiple = Mathf.Clamp(value, 1, 1000);
         _skillExpInput.SetTextWithoutNotify(ExpMultiple.ToString());
         SaveConfig(ConfigManager.SkillExpMultiple, ExpMultiple);
+    }
+
+    private void SetFixedItemCount(string input)
+    {
+        if (!int.TryParse(input, out var value))
+        {
+            value = 1;
+        }
+
+        FixedItemCount = Mathf.Clamp(value, 0, 9999);
+        _fixedItemCountInput.SetTextWithoutNotify(FixedItemCount.ToString());
+        SaveConfig(ConfigManager.FixedItemCount, FixedItemCount);
     }
 
     private static void BindInputKey(InputKeyUGUI obj, ConfigElement config)
@@ -237,9 +433,10 @@ internal class MiscPanel : MonoBehaviour
         _relationSwitch?.SetToggled(ConfigManager.RelationEnabled.Value, false);
         _enableAchieveSwitch?.SetToggled(ConfigManager.EnableAchievement.Value, false);
         _ultimateMartialSwitch?.SetToggled(ConfigManager.UltimateMartial.Value, false);
-
         ExpMultiple = Mathf.Clamp(ConfigManager.SkillExpMultiple.Value, 1, 1000);
         _skillExpInput?.SetTextWithoutNotify(ExpMultiple.ToString());
+        FixedItemCount = Mathf.Clamp(ConfigManager.FixedItemCount.Value, 0, 9999);
+        _fixedItemCountInput?.SetTextWithoutNotify(FixedItemCount.ToString());
 
         if (_walkSpeedSlider != null) {
             WalkSpeed = Mathf.Clamp(ConfigManager.WalkSpeed.Value, (int)_walkSpeedSlider.minValue, (int)_walkSpeedSlider.maxValue);

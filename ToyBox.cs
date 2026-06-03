@@ -56,7 +56,16 @@ public class ToyBox : BasePlugin
             typeof(SkillExpPatch),
             typeof(GiftingRelationPatch),
             typeof(WalkSpeedPatch),
-            typeof(AchievementHistoryPatch)
+            typeof(AchievementHistoryPatch),
+            typeof(FixedItemCountPickupPatch),
+            typeof(FixedItemCountAddItemInstancePatch),
+            typeof(FixedItemCountAddItemIdPatch),
+            typeof(FixedItemCountAddItemDataPatch),
+            typeof(FixedItemCountRemovePatch),
+            typeof(FixedItemCountTakePatch),
+            typeof(FixedItemCountUseOnCharacterPatch),
+            typeof(FixedItemCountUseOnBattleActorPatch),
+            typeof(FixedItemCountFactionBuyItemPatch)
         );
     }
 
