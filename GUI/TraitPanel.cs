@@ -48,6 +48,7 @@ internal class TraitPanel : MonoBehaviour
         Traits.Sort((a, b) => b.Rarity.CompareTo(a.Rarity));
 
         _infinityScroll.Data = Traits;
+        _infinityScroll.RefreshData();
         // infinityScroll.SetTotalItems(traits.Count);
     }
 

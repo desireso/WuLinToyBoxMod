@@ -220,6 +220,7 @@ public class ItemPanel : MonoBehaviour
         }
 
         _infinityScroll.Data = ItemList;
+        _infinityScroll.RefreshData();
 
 #if DEBUGMODE
         stopwatch.Stop();

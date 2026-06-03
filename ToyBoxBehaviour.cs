@@ -99,11 +99,11 @@ internal class ToyBoxBehaviour : MonoBehaviour
         }
 
         ToyBox.LogMessage("Trying to Load Prefab...");
-        var guiPrefab = guiAsset.LoadAsset<GameObject>(Constants.AssetName);
+        var guiPrefab = WithoutUnityLogging(() => guiAsset.LoadAsset<GameObject>(Constants.AssetName));
         if (guiPrefab != null)
         {
             ToyBox.LogMessage("Asset Loaded! Trying to Instantiate Prefab...");
-            GUICanvas = Instantiate(guiPrefab);
+            GUICanvas = WithoutUnityLogging(() => Instantiate(guiPrefab));
             GUICanvas.name = "ToyBoxCanvas";
             DontDestroyOnLoad(GUICanvas);
             GUICanvas.SetActive(false);
@@ -152,11 +152,11 @@ internal class ToyBoxBehaviour : MonoBehaviour
             }
 
             ToyBox.LogMessage("Trying to Load Prefab...");
-            var guiPrefab = guiAsset.LoadAsset<GameObject>(Constants.AssetName);
+            var guiPrefab = WithoutUnityLogging(() => guiAsset.LoadAsset<GameObject>(Constants.AssetName));
             if (guiPrefab != null)
             {
                 ToyBox.LogMessage("Asset Loaded! Trying to Instantiate Prefab...");
-                GUICanvas = Instantiate(guiPrefab);
+                GUICanvas = WithoutUnityLogging(() => Instantiate(guiPrefab));
                 GUICanvas.name = "ToyBoxCanvas";
                 DontDestroyOnLoad(GUICanvas);
                 GUICanvas.SetActive(false);
@@ -169,6 +169,21 @@ internal class ToyBoxBehaviour : MonoBehaviour
             {
                 ToyBox.LogMessage("Failed to Load Asset!");
             }
+        }
+    }
+
+    private static T WithoutUnityLogging<T>(Func<T> action)
+    {
+        var logger = Debug.unityLogger.Cast<Logger>();
+        var previous = logger.logEnabled;
+        logger.logEnabled = false;
+        try
+        {
+            return action();
+        }
+        finally
+        {
+            logger.logEnabled = previous;
         }
     }
 

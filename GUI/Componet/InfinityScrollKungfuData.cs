@@ -5,19 +5,9 @@ namespace HaxxToyBox.GUI;
 [RegisterInIl2Cpp]
 internal class InfinityScrollKungfuData : InfinityScrollBase
 {
-    private List<KungfuData> _data;
-    public List<KungfuData> Data {
-        get => _data;
-        set
-        {
-            if (value == _data) return;
+    internal List<KungfuData> Data;
 
-            _data = value;
-            UpdateContentSize();
-        }
-    }
-
-    public override int TotalItems => _data?.Count ?? 0;
+    public override int TotalItems => Data?.Count ?? 0;
 
     public InfinityScrollKungfuData(IntPtr ptr) : base(ptr) { }
 
@@ -44,5 +34,9 @@ internal class InfinityScrollKungfuData : InfinityScrollBase
             }
         }
     }
-}
 
+    internal void RefreshData()
+    {
+        UpdateContentSize();
+    }
+}

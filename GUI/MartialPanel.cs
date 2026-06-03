@@ -6,16 +6,16 @@ using GameData;
 
 namespace HaxxToyBox.GUI;
 
-public enum MartialType
+internal static class MartialTypes
 {
-    Internal,
-    Fist,
-    Sword,
-    Blade,
-    LongWeapon,
-    ShortWeapon,
-    Music,
-    Other
+    public const int Internal = 0;
+    public const int Fist = 1;
+    public const int Sword = 2;
+    public const int Blade = 3;
+    public const int LongWeapon = 4;
+    public const int ShortWeapon = 5;
+    public const int Music = 6;
+    public const int Other = 7;
 }
 
 [RegisterInIl2Cpp]
@@ -26,8 +26,8 @@ internal class MartialPanel : MonoBehaviour
 
     private InfinityScrollKungfuData _infinityScroll;
 
-    private MartialType _type;
-    private Dictionary<MartialType, List<KungfuData>> _classifiedKungfus = new ();
+    private int _type;
+    private Dictionary<int, List<KungfuData>> _classifiedKungfus = new ();
 
     public GameCharacterInstance Character { get; private set; }
 
@@ -43,7 +43,7 @@ internal class MartialPanel : MonoBehaviour
 
         for (int i = 0; i < _typeGroup.transform.childCount; i++) {
             var toggle = _typeGroup.transform.GetChild(i).GetComponent<Toggle>();
-            var type = (MartialType)i;
+            var type = i;
             toggle.onValueChanged.RemoveAllListeners();
             toggle.onValueChanged.AddListener((bool value) => {
                 if (value) {
@@ -72,7 +72,7 @@ internal class MartialPanel : MonoBehaviour
     {
         SetupRoleList();
 
-        UpdateMartialList(MartialType.Internal);
+        UpdateMartialList(MartialTypes.Internal);
     }
 
     private void LoadMartialData()
@@ -113,36 +113,38 @@ internal class MartialPanel : MonoBehaviour
         }
     }
 
-    private void UpdateMartialList(MartialType type)
+    private void UpdateMartialList(int type)
     {
         _type = type;
 
         if (_classifiedKungfus.TryGetValue(type, out var kungfus)) {
             _infinityScroll.Data = kungfus;
+            _infinityScroll.RefreshData();
         }
         else {
             _infinityScroll.Data = new List<KungfuData>();
+            _infinityScroll.RefreshData();
         }
     }
 
-    public static MartialType GetMartialType(KungfuData kungfu)
+    public static int GetMartialType(KungfuData kungfu)
     {
         if (kungfu.KungfuType == KungfuType.Internal) {
-            return MartialType.Internal;
+            return MartialTypes.Internal;
         }
 
         if (kungfu.KungfuType != KungfuType.Outernal || kungfu.NeedWeaponToCast.Length == 0) {
-            return MartialType.Other;
+            return MartialTypes.Other;
         }
 
         return kungfu.NeedWeaponToCast[0] switch {
-            ItemType.Equip_Weapon_None => MartialType.Fist,
-            ItemType.Equip_Weapon_Sword => MartialType.Sword,
-            ItemType.Equip_Weapon_Blade => MartialType.Blade,
-            ItemType.Equip_Weapon_Lance or ItemType.Equip_Weapon_Staff => MartialType.LongWeapon,
-            ItemType.Equip_Weapon_Fan or ItemType.Equip_Weapon_Dagger or ItemType.Equip_Weapon_Brush => MartialType.ShortWeapon,
-            ItemType.Equip_Weapon_Guqin or ItemType.Equip_Weapon_Flute or ItemType.Equip_Weapon_Pipa => MartialType.Music,
-            _ => MartialType.Other,
+            ItemType.Equip_Weapon_None => MartialTypes.Fist,
+            ItemType.Equip_Weapon_Sword => MartialTypes.Sword,
+            ItemType.Equip_Weapon_Blade => MartialTypes.Blade,
+            ItemType.Equip_Weapon_Lance or ItemType.Equip_Weapon_Staff => MartialTypes.LongWeapon,
+            ItemType.Equip_Weapon_Fan or ItemType.Equip_Weapon_Dagger or ItemType.Equip_Weapon_Brush => MartialTypes.ShortWeapon,
+            ItemType.Equip_Weapon_Guqin or ItemType.Equip_Weapon_Flute or ItemType.Equip_Weapon_Pipa => MartialTypes.Music,
+            _ => MartialTypes.Other,
         };
     }
 

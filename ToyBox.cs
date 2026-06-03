@@ -104,6 +104,12 @@ public class ToyBox : BasePlugin
     private static void LogInternal(object message, LogType logType)
     {
         string log = message?.ToString() ?? "";
+        if (logType == LogType.Warning
+            && log.Contains("[UniverseLib] Failed loading module 'Newtonsoft.Json.dll'")
+            && log.Contains("Assembly with same name is already loaded"))
+        {
+            return;
+        }
 
         switch (logType) {
             case LogType.Assert:

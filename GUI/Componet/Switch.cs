@@ -3,7 +3,7 @@
 [RegisterInIl2Cpp]
 public class Switch : MonoBehaviour
 {
-    public event Action<bool> OnChanged;
+    internal Action<bool> OnChanged;
 
     private Button _button;
     private Animator _animator;

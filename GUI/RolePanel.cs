@@ -6,6 +6,11 @@ namespace HaxxToyBox.GUI;
 [RegisterInIl2Cpp]
 internal class RolePanel : MonoBehaviour
 {
+    internal const int LeftRoleInfo = 0;
+    internal const int RightRoleInfo = 1;
+    internal const int BottomRoleInfo = 2;
+    internal const int AdditionRoleInfo = 3;
+
     private ToggleGroup _roleList;
     
     public GameCharacterInstance Character = null;
@@ -122,16 +127,17 @@ internal class RolePanel : MonoBehaviour
             Character = charac;
         //ToyBox.LogMessage($"{character.FullName} Selected.");
 
-        UpdateInfoGroup(LeftInfoGroup, leftRoleInfoKeys);
-        UpdateInfoGroup(RightInfoGroup, rightRoleInfoKeys);
-        UpdateInfoGroup(BottomInfoGroup, bottomRoleInfoKeys);
-        UpdateInfoGroup(AdditionInfoGroup, additionRoleInfoKeys);
+        UpdateInfoGroup(LeftInfoGroup, LeftRoleInfo);
+        UpdateInfoGroup(RightInfoGroup, RightRoleInfo);
+        UpdateInfoGroup(BottomInfoGroup, BottomRoleInfo);
+        UpdateInfoGroup(AdditionInfoGroup, AdditionRoleInfo);
 
         UpdateTraitList();
     }
 
-    private void UpdateInfoGroup(GameObject group, string[] keys)
+    private void UpdateInfoGroup(GameObject group, int keySet)
     {
+        var keys = RolePanelKeys.Get(keySet, leftRoleInfoKeys, rightRoleInfoKeys, bottomRoleInfoKeys, additionRoleInfoKeys);
         int iterations = Mathf.Min(group.transform.childCount, keys.Length);
         for (int i = 0; i < iterations; i++) {
             Transform child = group.transform.GetChild(i);
@@ -158,14 +164,15 @@ internal class RolePanel : MonoBehaviour
 
     private void UpdateInfoLabels()
     {
-        UpdateInfoLabels(LeftInfoGroup, leftRoleInfoKeys);
-        UpdateInfoLabels(RightInfoGroup, rightRoleInfoKeys);
-        UpdateInfoLabels(BottomInfoGroup, bottomRoleInfoKeys);
-        UpdateInfoLabels(AdditionInfoGroup, additionRoleInfoKeys);
+        UpdateInfoLabels(LeftInfoGroup, LeftRoleInfo);
+        UpdateInfoLabels(RightInfoGroup, RightRoleInfo);
+        UpdateInfoLabels(BottomInfoGroup, BottomRoleInfo);
+        UpdateInfoLabels(AdditionInfoGroup, AdditionRoleInfo);
     }
 
-    private void UpdateInfoLabels(GameObject group, string[] keys)
+    private void UpdateInfoLabels(GameObject group, int keySet)
     {
+        var keys = RolePanelKeys.Get(keySet, leftRoleInfoKeys, rightRoleInfoKeys, bottomRoleInfoKeys, additionRoleInfoKeys);
         int iterations = Mathf.Min(group.transform.childCount, keys.Length);
         for (int i = 0; i < iterations; i++) {
             SetInfoLabel(group.transform.GetChild(i), keyToKoreanLabelMap[keys[i]]);
@@ -223,5 +230,20 @@ internal class RolePanel : MonoBehaviour
             TraitList.GetChild(i).gameObject.SetActive(false);
         }
 
+    }
+}
+
+internal static class RolePanelKeys
+{
+    public static string[] Get(int keySet, string[] left, string[] right, string[] bottom, string[] addition)
+    {
+        return keySet switch
+        {
+            RolePanel.LeftRoleInfo => left,
+            RolePanel.RightRoleInfo => right,
+            RolePanel.BottomRoleInfo => bottom,
+            RolePanel.AdditionRoleInfo => addition,
+            _ => left
+        };
     }
 }
