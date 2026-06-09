@@ -19,6 +19,12 @@ internal static class FixedItemCountHelper
         ItemType.Misc_Map |
         ItemType.Consumeable_Recipe;
 
+    private static readonly HashSet<int> ExcludedItemIds = new()
+    {
+        23109,
+        29702
+    };
+
     public static void ApplyToPack(GameItemPack pack, string source)
     {
         if (!IsEnabled() || pack == null) return;
@@ -129,6 +135,11 @@ internal static class FixedItemCountHelper
         ApplyToItem(inventory, inventoryItem, source);
     }
 
+    public static bool ShouldTraceChangedItem(GameItemInstance item)
+    {
+        return IsEnabled() && !_isApplying && CanApply(item);
+    }
+
     private static bool IsEnabled()
     {
         return GetTargetCount() > 0;
@@ -147,7 +158,7 @@ internal static class FixedItemCountHelper
 
     private static bool CanApply(GameItemInstance item)
     {
-        return item != null && item.IsStackable && CanApply(item.Templete);
+        return item != null && !ExcludedItemIds.Contains(item.TempleteId) && item.IsStackable && CanApply(item.Templete);
     }
 
     public static bool IsAppraisalItem(GameItemInstance item)
@@ -189,6 +200,7 @@ internal static class FixedItemCountHelper
     private static bool CanApply(ItemData itemData)
     {
         if (itemData == null || !itemData.IsStackable) return false;
+        if (ExcludedItemIds.Contains(itemData.Uid)) return false;
 
         return (itemData.Type & ExcludedTypes) == 0;
     }
@@ -337,6 +349,7 @@ public class FixedItemCountChangeStackPatch
     public static void ChangeStack_Postfix(GameItemInstance __instance, bool __result)
     {
         if (!__result || __instance == null) return;
+        if (!FixedItemCountHelper.ShouldTraceChangedItem(__instance)) return;
 
         ToyBox.LogMessage($"[FixedItemCount] ChangeStack hit: ID={__instance.TempleteId}, Name={__instance.ItemName}, Count={__instance.Stack}");
         FixedItemCountHelper.ApplyChangedInventoryItem(__instance, "ChangeStack");
