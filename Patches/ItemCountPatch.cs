@@ -22,6 +22,7 @@ internal static class FixedItemCountHelper
     private static readonly HashSet<int> ExcludedItemIds = new()
     {
         23109,
+        29610,
         29702
     };
 
