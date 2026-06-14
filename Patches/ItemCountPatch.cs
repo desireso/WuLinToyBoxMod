@@ -1,4 +1,5 @@
 using GameData;
+using BepInEx;
 using HarmonyLib;
 using HaxxToyBox.Config;
 using HaxxToyBox.GUI;
@@ -12,14 +13,18 @@ namespace HaxxToyBox.Patches;
 
 internal static class FixedItemCountHelper
 {
+    private const string ExcludedItemIdsFileName = "fixed_item_count_excluded_ids.txt";
+
     private static bool _isApplying;
+    private static HashSet<int> _excludedItemIds;
+    private static DateTime _excludedItemIdsLastWriteTimeUtc;
 
     private static readonly ItemType ExcludedTypes =
         ItemType.Misc_Quest |
         ItemType.Misc_Map |
         ItemType.Consumeable_Recipe;
 
-    private static readonly HashSet<int> ExcludedItemIds = new()
+    private static readonly int[] DefaultExcludedItemIds =
     {
         23109,
         29610,
@@ -159,7 +164,7 @@ internal static class FixedItemCountHelper
 
     private static bool CanApply(GameItemInstance item)
     {
-        return item != null && !ExcludedItemIds.Contains(item.TempleteId) && item.IsStackable && CanApply(item.Templete);
+        return item != null && !IsExcludedItemId(item.TempleteId) && item.IsStackable && CanApply(item.Templete);
     }
 
     public static bool IsAppraisalItem(GameItemInstance item)
@@ -201,9 +206,85 @@ internal static class FixedItemCountHelper
     private static bool CanApply(ItemData itemData)
     {
         if (itemData == null || !itemData.IsStackable) return false;
-        if (ExcludedItemIds.Contains(itemData.Uid)) return false;
+        if (IsExcludedItemId(itemData.Uid)) return false;
 
         return (itemData.Type & ExcludedTypes) == 0;
+    }
+
+    private static bool IsExcludedItemId(int itemId)
+    {
+        EnsureExcludedItemIdsLoaded();
+
+        return _excludedItemIds.Contains(itemId);
+    }
+
+    private static void EnsureExcludedItemIdsLoaded()
+    {
+        string path = GetExcludedItemIdsFilePath();
+        try
+        {
+            EnsureExcludedItemIdsFile(path);
+
+            DateTime lastWriteTimeUtc = File.GetLastWriteTimeUtc(path);
+            if (_excludedItemIds != null && lastWriteTimeUtc == _excludedItemIdsLastWriteTimeUtc) return;
+
+            _excludedItemIds = LoadExcludedItemIds(path);
+            _excludedItemIdsLastWriteTimeUtc = lastWriteTimeUtc;
+        }
+        catch (Exception ex)
+        {
+            _excludedItemIds = DefaultExcludedItemIds.ToHashSet();
+            _excludedItemIdsLastWriteTimeUtc = DateTime.MinValue;
+            ToyBox.LogWarning($"[FixedItemCount] Failed to load excluded item IDs. Using defaults. {ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
+    private static void EnsureExcludedItemIdsFile(string path)
+    {
+        string directory = Path.GetDirectoryName(path);
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        if (File.Exists(path)) return;
+
+        var lines = new List<string>
+        {
+            "# HaxxToyBox fixed item count exclusion list",
+            "# Add one item ID per line. Empty lines and lines starting with # are ignored.",
+            "# Changes are reloaded automatically while the game is running.",
+            ""
+        };
+        lines.AddRange(DefaultExcludedItemIds.Select(id => id.ToString()));
+        File.WriteAllLines(path, lines);
+    }
+
+    private static HashSet<int> LoadExcludedItemIds(string path)
+    {
+        var itemIds = new HashSet<int>();
+        string[] lines = File.ReadAllLines(path);
+
+        for (int i = 0; i < lines.Length; i++)
+        {
+            string line = lines[i].Split('#')[0].Trim();
+            if (string.IsNullOrEmpty(line)) continue;
+
+            if (int.TryParse(line, out int itemId))
+            {
+                itemIds.Add(itemId);
+                continue;
+            }
+
+            ToyBox.LogWarning($"[FixedItemCount] Ignoring invalid excluded item ID at {ExcludedItemIdsFileName}:{i + 1}: {lines[i]}");
+        }
+
+        return itemIds;
+    }
+
+    private static string GetExcludedItemIdsFilePath()
+    {
+        return Path.Combine(Paths.PluginPath, "HaxxToyBox", ExcludedItemIdsFileName);
     }
 
     private static ItemData FindItemData(int itemId)
