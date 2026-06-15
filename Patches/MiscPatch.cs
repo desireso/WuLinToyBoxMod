@@ -1,6 +1,7 @@
 ﻿using HarmonyLib;
 using TMPro;
 using WuLin;
+using HaxxToyBox.Config;
 using HaxxToyBox.GUI;
 using static WuLin.GameCharacterInstance;
 using WuLin.GameFrameworks;
@@ -74,8 +75,8 @@ public class SkillExpPatch
     [HarmonyPatch(typeof(GameCharacterInstance), "ChangeAdditionProp")]
     public static bool ChangeAdditionProp_PrePatch(string key, ref Il2CppSystem.Decimal value)
     {
-        if (MiscPanel.Instance && key.Contains("能力经验_")) {
-            value *= MiscPanel.Instance.ExpMultiple;
+        if (key.Contains("能力经验_")) {
+            value *= Mathf.Clamp(ConfigManager.SkillExpMultiple.Value, 1, 1000);
         }
         return true;
     }
@@ -87,9 +88,9 @@ public class KungfuExpPatch
     [HarmonyPatch(typeof(KungfuInstance), "AddExp")]
     public static void AddExp_PrePatch(ref int amount)
     {
-        if (!MiscPanel.Instance || amount <= 0) return;
+        if (amount <= 0) return;
 
-        var multiplier = Mathf.Clamp(MiscPanel.Instance.KungfuExpMultiple, 1, 1000);
+        var multiplier = Mathf.Clamp(ConfigManager.KungfuExpMultiple.Value, 1, 1000);
         if (multiplier <= 1) return;
 
         var multiplied = (long)amount * multiplier;
