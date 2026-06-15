@@ -10,6 +10,7 @@ internal class RolePanel : MonoBehaviour
     internal const int RightRoleInfo = 1;
     internal const int BottomRoleInfo = 2;
     internal const int AdditionRoleInfo = 3;
+    private const string KnowledgePointProp = "冲穴点数";
 
     private ToggleGroup _roleList;
     
@@ -36,7 +37,7 @@ internal class RolePanel : MonoBehaviour
     };
 
     readonly string[] bottomRoleInfoKeys = {
-        "rende", "yiqi", "lijie", "xinyong", "zhihui","yongqi"
+        "rende", "yiqi", "lijie", "xinyong", "zhihui", "yongqi", "point"
     };
 
     readonly string[] percentageKeys = {
@@ -60,7 +61,7 @@ internal class RolePanel : MonoBehaviour
         {"gongji", "공격"}, {"qinggong", "경공"}, {"quanzhang", "권장"}, {"shuadao", "도법"},
         {"duanbing", "단병"}, {"mingzhong", "명중"}, {"baoji", "치명"}, {"yishu", "의술"},
         {"anqi", "암기"}, {"wuxuechangshi", "무학 상식"}, {"hp", "생명"}, {"mp", "내력"},
-        {"point", "혈도 점수"}, {"exp", "경험"}, {"lv", "등급"}, {"fangyu", "방어"}, {"jiqi", "집기 속도"},
+        {"point", "참오점수"}, {"exp", "경험"}, {"lv", "등급"}, {"fangyu", "방어"}, {"jiqi", "집기 속도"},
         {"yujian", "어검"}, {"changbing", "장병"}, {"yinlv", "음률"}, {"shanbi", "회피"},
         {"gedang", "막기"}, {"dushu", "독술"}, {"hubo", "연격"}, {"shizhannengli", "실전 능력"},
         {"bili", "근력"}, {"tizhi", "체질"}, {"minjie", "민첩"}, {"wuxing", "오성"},
@@ -87,6 +88,7 @@ internal class RolePanel : MonoBehaviour
         TraitEntryPrefab = transform.Find("Traits/Viewport/EntryPrefab").gameObject;
         TraitEntryPrefab.AddComponent<TraitDelEntry>();
 
+        EnsureInfoRows();
         UpdateInfoLabels();
     }
 
@@ -151,7 +153,9 @@ internal class RolePanel : MonoBehaviour
             string formatstr = percentageKeys.Contains(keys[i]) ? "F3" : "";
 
             string propKey = keyToLabelMap[keys[i]];
-            var propSource = GameCharacterInstance.FinalPropSource.Origin;
+            var propSource = IsKnowledgePointProp(propKey)
+                ? GameCharacterInstance.FinalPropSource.All
+                : GameCharacterInstance.FinalPropSource.Origin;
             inputObj.text = Character.GetFinalPropAsDecimal(propKey, propSource).ToString(formatstr);
 
             inputObj.onValueChanged.RemoveAllListeners();
@@ -168,6 +172,40 @@ internal class RolePanel : MonoBehaviour
         UpdateInfoLabels(RightInfoGroup, RightRoleInfo);
         UpdateInfoLabels(BottomInfoGroup, BottomRoleInfo);
         UpdateInfoLabels(AdditionInfoGroup, AdditionRoleInfo);
+    }
+
+    private void EnsureInfoRows()
+    {
+        EnsureInfoRows(LeftInfoGroup, leftRoleInfoKeys.Length);
+        EnsureInfoRows(RightInfoGroup, rightRoleInfoKeys.Length);
+        EnsureInfoRows(BottomInfoGroup, bottomRoleInfoKeys.Length);
+        EnsureInfoRows(AdditionInfoGroup, additionRoleInfoKeys.Length);
+    }
+
+    private static void EnsureInfoRows(GameObject group, int requiredCount)
+    {
+        if (group == null || group.transform.childCount == 0) return;
+
+        while (group.transform.childCount < requiredCount) {
+            var lastRow = group.transform.GetChild(group.transform.childCount - 1);
+            var row = UnityEngine.Object.Instantiate(lastRow.gameObject, group.transform);
+            row.name = $"InfoRow{group.transform.childCount}";
+            row.SetActive(true);
+
+            var rowRect = row.GetComponent<RectTransform>();
+            var lastRect = lastRow.GetComponent<RectTransform>();
+            if (rowRect == null || lastRect == null) continue;
+
+            var nextPosition = lastRect.anchoredPosition + new Vector2(0f, -40f);
+            if (group.transform.childCount >= 3) {
+                var previousRect = group.transform.GetChild(group.transform.childCount - 3).GetComponent<RectTransform>();
+                if (previousRect != null) {
+                    nextPosition = lastRect.anchoredPosition + (lastRect.anchoredPosition - previousRect.anchoredPosition);
+                }
+            }
+
+            rowRect.anchoredPosition = nextPosition;
+        }
     }
 
     private void UpdateInfoLabels(GameObject group, int keySet)
@@ -198,6 +236,9 @@ internal class RolePanel : MonoBehaviour
             return false;
         }
 
+        if (IsKnowledgePointProp(propKey))
+            return ChangeFinalProperty(propKey, value);
+
         if (!Character.m_originProps.ContainsKey(propKey))
             Character.m_originProps.Add(propKey, 0);
 
@@ -205,6 +246,25 @@ internal class RolePanel : MonoBehaviour
         Character.ChangeOriginProp(propKey, diff);
 
         return true;
+    }
+
+    private bool ChangeFinalProperty(string propKey, Il2CppSystem.Decimal targetValue)
+    {
+        var currentValue = Character.GetFinalPropAsDecimal(propKey, GameCharacterInstance.FinalPropSource.All);
+        var currentAddition = Character.m_additionProps.ContainsKey(propKey)
+            ? Character.m_additionProps[propKey]
+            : 0;
+        var targetAddition = currentAddition + (targetValue - currentValue);
+
+        Character.SetAdditionProp(propKey, targetAddition);
+        Character.CountZzPoint();
+
+        return true;
+    }
+
+    private static bool IsKnowledgePointProp(string propKey)
+    {
+        return propKey == KnowledgePointProp;
     }
 
     private void UpdateTraitList()
